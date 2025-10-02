@@ -156,17 +156,17 @@ export function CastDaemon() {
             onClick={attackPrey}
             disabled={!selectedPrey || isAttacking || isSummoning}
             size="lg"
-            className="flex-1 bg-primary text-lg font-bold text-primary-foreground hover:bg-primary/90"
+            className="w-full h-16 bg-primary text-xl font-bold text-primary-foreground hover:bg-primary/90"
           >
             {isAttacking ? (
               <>
-                <Loader2 className="mr-2 size-5 animate-spin" />
-                Harvesting...
+                <Loader2 className="mr-2 size-6 animate-spin" />
+                Engaging Target...
               </>
             ) : (
               <>
-                <Target className="mr-2 size-5" />
-                Capture Consciousness
+                <Target className="mr-2 size-6" />
+                Deploy Azura
               </>
             )}
           </Button>
