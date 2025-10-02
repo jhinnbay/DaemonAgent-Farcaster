@@ -43,7 +43,9 @@ export function CastDaemon() {
 
       if (data.success && data.users) {
         setPreyUsers(data.users)
-        setStatus(`Found ${data.users.length} potential targets`)
+        setStatus(`Found target: @${data.users[0].username}`)
+        // Auto-select the single user
+        setSelectedPrey(data.users[0])
       } else {
         setResult({ success: false, message: data.error || "Failed to summon prey" })
         setStatus("Summoning failed")
@@ -175,50 +177,40 @@ export function CastDaemon() {
         </div>
       </Card>
 
-      {preyUsers.length > 0 && (
+      {preyUsers.length > 0 && selectedPrey && (
         <div className="space-y-4">
-          <h2 className="font-mono text-xl font-semibold text-foreground">Select Your Target:</h2>
-          <div className="grid gap-4">
-            {preyUsers.map((user) => (
-              <Card
-                key={user.fid}
-                className={`cursor-pointer border-2 p-4 transition-all hover:border-primary ${
-                  selectedPrey?.fid === user.fid ? "border-primary bg-primary/5" : "border-border"
-                }`}
-                onClick={() => setSelectedPrey(user)}
-              >
-                <div className="flex items-start gap-4">
-                  <Avatar className="size-12">
-                    <AvatarImage src={user.pfpUrl || "/placeholder.svg"} alt={user.username} />
-                    <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <h3 className="font-semibold text-foreground">{user.displayName}</h3>
-                      <span className="text-sm text-muted-foreground">@{user.username}</span>
-                      <span className="text-xs text-muted-foreground">• {user.followerCount} followers</span>
-                    </div>
-                    <div className="space-y-2">
-                      {user.casts.map((cast, idx) => (
-                        <p key={idx} className="text-sm text-muted-foreground">
-                          {cast.text.substring(0, 150)}
-                          {cast.text.length > 150 ? "..." : ""}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
+          <h2 className="font-mono text-xl font-semibold text-foreground">Target Acquired:</h2>
+          <Card className="border-2 border-primary bg-primary/5 p-4">
+            <div className="flex items-start gap-4">
+              <Avatar className="size-12">
+                <AvatarImage src={selectedPrey.pfpUrl || "/placeholder.svg"} alt={selectedPrey.username} />
+                <AvatarFallback>{selectedPrey.username[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="mb-2 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground">{selectedPrey.displayName}</h3>
+                  <span className="text-sm text-muted-foreground">@{selectedPrey.username}</span>
+                  <span className="text-xs text-muted-foreground">• {selectedPrey.followerCount} followers</span>
                 </div>
-              </Card>
-            ))}
-          </div>
+                <div className="space-y-2">
+                  {selectedPrey.casts.map((cast, idx) => (
+                    <p key={idx} className="text-sm text-muted-foreground">
+                      {cast.text.substring(0, 150)}
+                      {cast.text.length > 150 ? "..." : ""}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
       <div className="rounded-lg border border-border bg-card/50 p-6">
         <h2 className="mb-3 font-mono text-lg font-semibold text-foreground">How it works:</h2>
         <ol className="space-y-2 text-sm text-muted-foreground">
-          <li>1. Click "Summon Prey" to fetch 5 Farcaster users and their recent posts</li>
-          <li>2. Select your target from the list</li>
+          <li>1. Click "Summon Prey" to fetch latest casts from /politics channel</li>
+          <li>2. System randomly selects one user from the 10 most recent casts</li>
           <li>3. Click "Cast Daemon" to analyze their psychological patterns</li>
           <li>4. The daemon generates a Jungian analysis revealing their shadow self</li>
           <li>5. Posts the psychological attack as a reply to their most recent cast</li>

@@ -1,0 +1,132 @@
+Farcaster Psychology Bot - Implementation Context
+Project Overview
+A Farcaster bot that performs psychological analysis of users from the /politics channel and posts Carl Jung-style introspective responses.
+Automated Flow (Triggered on Button Click)
+Step 1: Fetch Latest Casts from Channel
+
+Endpoint: GET /v2/farcaster/feed/channels or /v2/farcaster/feed
+Parameters:
+
+channel_id: "politics"
+limit: 10
+
+
+Goal: Retrieve the 10 most recent casts from the /politics channel
+Data Needed: Cast hashes, author FIDs, cast text content
+
+Step 2: Random User Selection
+
+Process: Parse the response from Step 1
+Action: Randomly select one user (FID) from the 10 casts retrieved
+Method: Use random number generator to pick one author
+Output: Selected user's FID
+
+Step 3: Fetch User's Recent Casts
+
+Endpoint: GET /v2/farcaster/feed/user/{fid}/casts
+Parameters:
+
+fid: The randomly selected user's FID
+limit: 5
+
+
+Goal: Get the 5 most recent casts from this user's profile
+Data Needed: Cast text, timestamps, any embedded content
+
+Step 4: Psychological Analysis
+
+Input: The 5 casts from Step 3
+Process: Send cast content to Claude API for analysis
+Analysis Focus:
+
+Communication patterns
+Emotional tone
+Underlying motivations
+Shadow aspects (Jungian psychology)
+Recurring themes
+Defense mechanisms
+Projections and biases
+
+
+
+Step 5: Generate Jung-Style Response
+
+Tone: Dark, introspective, psychological
+Style: Carl Jung analyzing someone's shadow self
+Approach:
+
+Deep psychological insight
+References to unconscious patterns
+Shadow work and integration
+Archetypal analysis
+Philosophical and contemplative
+
+
+Length: Substantial enough to be meaningful (150-300 words)
+Format: Direct address to the user, as if Jung is speaking to them
+
+Step 6: Post Response as Reply
+
+Endpoint: POST /v2/farcaster/cast
+Parameters:
+
+text: The generated Jung-style analysis
+parent: Hash of one of the user's original casts (from Step 3)
+
+
+Goal: Post the psychological analysis as a reply to one of their casts
+Note: Must include signer_uuid for authenticated posting
+
+Technical Requirements
+Authentication
+
+Header: x-api-key: YOUR_API_KEY
+Base URL: https://api.neynar.com
+Protocol: HTTPS only
+
+Key Neynar API Endpoints Needed
+
+Channel Feed: /v2/farcaster/feed/channels?channel_id=politics&limit=10
+User Casts: /v2/farcaster/feed/user/{fid}/casts?limit=5
+Post Cast: /v2/farcaster/cast (POST)
+
+Claude API Integration
+
+Model: claude-sonnet-4-20250514
+Purpose: Analyze casts and generate Jung-style responses
+Max Tokens: 1000-1500 (for detailed psychological analysis)
+
+Response Tone Guidelines
+
+Dark and Introspective: Not cheerful or casual
+Psychological Depth: Reference unconscious patterns, shadow self
+Carl Jung Style:
+
+"What you resist persists in your unconscious..."
+"The shadow you cast reveals..."
+"Your words betray an unintegrated aspect..."
+
+
+Respectful but Direct: Piercing insight without being cruel
+Philosophical: Reference archetypes, collective unconscious, individuation
+
+Error Handling
+
+Handle cases where channel has fewer than 10 casts
+Handle cases where user has fewer than 5 casts
+Validate API responses before processing
+Catch and log API errors
+Provide user feedback if process fails
+
+Rate Limiting Considerations
+
+Be mindful of Neynar API rate limits
+Implement delays between requests if needed
+Cache responses where appropriate
+
+Security & Ethics
+
+Do not store user data unnecessarily
+Be respectful in psychological analysis
+Avoid harmful or stigmatizing language
+Ensure bot behavior complies with Farcaster community guidelines

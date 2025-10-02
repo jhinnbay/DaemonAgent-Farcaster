@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     console.log("[v0] Step 1: Fetching user's recent casts for FID:", fid)
 
-    const userCastsResponse = await fetch(`https://api.neynar.com/v2/farcaster/feed/user/${fid}/casts?limit=5`, {
+    const userCastsResponse = await fetch(`https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=fids&fids=${fid}&with_recasts=false&limit=5`, {
       headers: {
         accept: "application/json",
         "x-api-key": apiKey,
@@ -66,31 +66,33 @@ Keep it under 280 characters for Farcaster.`
 
     console.log("[v0] Step 3: Generating Jungian analysis...")
 
-    const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY!}`,
       },
       body: JSON.stringify({
-        model: "gpt-4",
+        model: "deepseek-chat",
+        max_tokens: 150,
+        temperature: 0.8,
         messages: [
           {
             role: "system",
-            content: "You are a Jungian psychologist providing introspective analysis.",
+            content: "You are a dark Jungian psychologist analyzing someone's shadow self. Provide introspective, penetrating analysis that reveals unconscious patterns, shadow aspects, and psychological projections. Be direct but not cruel. Keep responses under 280 characters for Farcaster.",
           },
           {
             role: "user",
             content: analysisPrompt,
           },
         ],
-        max_tokens: 150,
-        temperature: 0.8,
       }),
     })
 
     if (!aiResponse.ok) {
-      return NextResponse.json({ success: false, error: "Failed to generate analysis" }, { status: 500 })
+      const errorText = await aiResponse.text()
+      console.log("[v0] DeepSeek API error:", aiResponse.status, errorText)
+      return NextResponse.json({ success: false, error: `DeepSeek API failed: ${errorText}` }, { status: 500 })
     }
 
     const aiData = await aiResponse.json()

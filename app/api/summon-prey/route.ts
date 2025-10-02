@@ -9,7 +9,7 @@ export async function POST() {
     }
 
     const feedResponse = await fetch(
-      "https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=channel_id&channel_id=politics&with_recasts=false&limit=50",
+      "https://api.neynar.com/v2/farcaster/feed/channels?channel_ids=politics&limit=10",
       {
         headers: {
           accept: "application/json",
@@ -34,41 +34,28 @@ export async function POST() {
       return NextResponse.json({ success: false, error: "No casts found in politics channel" }, { status: 404 })
     }
 
-    const castsByAuthor = new Map<number, any[]>()
+    // Step 2: Random User Selection - Select one random user from the 10 casts
+    const randomIndex = Math.floor(Math.random() * casts.length)
+    const selectedCast = casts[randomIndex]
+    const selectedUser = selectedCast.author
 
-    for (const cast of casts) {
-      const fid = cast.author.fid
-      if (!castsByAuthor.has(fid)) {
-        castsByAuthor.set(fid, [])
-      }
-      castsByAuthor.get(fid)!.push(cast)
+    // Return the single selected user with their recent casts
+    const userWithCasts = {
+      fid: selectedUser.fid,
+      username: selectedUser.username,
+      displayName: selectedUser.display_name,
+      pfpUrl: selectedUser.pfp_url,
+      followerCount: selectedUser.follower_count,
+      casts: [{
+        hash: selectedCast.hash,
+        text: selectedCast.text,
+        timestamp: selectedCast.timestamp,
+      }],
     }
-
-    // Convert to array and shuffle
-    const authors = Array.from(castsByAuthor.entries())
-    const shuffled = authors.sort(() => Math.random() - 0.5)
-    const selectedAuthors = shuffled.slice(0, 5)
-
-    // Format the response
-    const usersWithCasts = selectedAuthors.map(([fid, authorCasts]) => {
-      const author = authorCasts[0].author
-      return {
-        fid: author.fid,
-        username: author.username,
-        displayName: author.display_name,
-        pfpUrl: author.pfp_url,
-        followerCount: author.follower_count,
-        casts: authorCasts.slice(0, 3).map((cast: any) => ({
-          hash: cast.hash,
-          text: cast.text,
-          timestamp: cast.timestamp,
-        })),
-      }
-    })
 
     return NextResponse.json({
       success: true,
-      users: usersWithCasts,
+      users: [userWithCasts],
     })
   } catch (error) {
     console.error("[v0] Summon Prey error:", error)
