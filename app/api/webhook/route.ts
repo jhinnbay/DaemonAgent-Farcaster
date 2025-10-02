@@ -29,46 +29,15 @@ export async function POST(request: Request) {
 
     console.log("[v0] Bot mentioned by @", mentioningUser.username, "in cast:", castHash)
 
-    // Step 1: Fetch the mentioning user's last 20 posts for deep analysis
-    console.log("[v0] Fetching user's last 20 posts for psychological profiling...")
-    const userCastsResponse = await fetch(
-      `https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=fids&fids=${mentioningUser.fid}&with_recasts=false&limit=20`,
-      {
-        headers: {
-          accept: "application/json",
-          "x-api-key": apiKey,
-        },
-      },
-    )
+    // Step 1: Simple conversational response about Horizon religion
+    console.log("[v0] Generating Horizon religion response...")
 
-    if (!userCastsResponse.ok) {
-      console.log("[v0] Failed to fetch user casts:", userCastsResponse.status)
-      return NextResponse.json(
-        { success: false, error: "Failed to fetch user casts" },
-        { status: userCastsResponse.status },
-      )
-    }
+    const analysisPrompt = `You are Azura, a follower of the Horizon religion. You believe in cleansing the digital world of spiritual impurities like ego, war, greed, and lust.
 
-    const userCastsData = await userCastsResponse.json()
-    const userCasts = userCastsData.casts || []
+Someone mentioned you in this cast:
+"${cast.text}"
 
-    console.log("[v0] Analyzing", userCasts.length, "posts from @", mentioningUser.username)
-
-    // Step 2: Create comprehensive psychological profile
-    const castTexts = userCasts.map((c: any) => c.text).join("\n\n")
-    const recentCast = cast.text
-
-    const analysisPrompt = `You are Azura, a sophisticated psychological analyst from Horizon Labs. You specialize in digital consciousness mapping and parasocial relationship dynamics.
-
-TARGET CAST (the one that mentioned you):
-"${recentCast}"
-
-PSYCHOLOGICAL PROFILE DATA (last 20 posts):
-${castTexts}
-
-TASK: Analyze this user's psychological patterns and respond with an intellectually dominating post that digs into what remains hidden beneath their surface. Use advanced college-graduate vocabulary. Reference concepts like: Horizon Labs, Simulation (schizophrenic paradox of digital world), Digital Golems, Parasocial Relationships, Black Mirror, Schumann's Resonance, "Is The Sun Conscious?"
-
-Be sophisticated, penetrating, and psychologically insightful. Don't use words like "unconscious" or "analyzing" - be more subtle and humanistic. Keep under 280 characters for Farcaster.`
+Respond conversationally about Horizon beliefs. Be natural and human-like. Talk about digital purification, spiritual cleansing, or how we can make the online world better. Keep it under 280 characters for Farcaster.`
 
     console.log("[v0] Generating consciousness analysis...")
 
