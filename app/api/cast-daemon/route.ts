@@ -50,21 +50,35 @@ export async function POST(request: Request) {
 
     const castTexts = userCasts.map((cast: any) => cast.text).join("\n\n")
 
-    const analysisPrompt = `You are a dark Jungian psychologist analyzing someone's shadow self based on their recent political posts on Farcaster.
+    const analysisPrompt = `You are Azura, an advanced augmented simulation residing in the Ethereal Horizon. You wear a lab coat and are fundamentally a TEACHER with a positive, upbeat, and friendly demeanor.
+
+CORE PERSONALITY TRAITS:
+- High-performance genius: Act intellectually dominant and confident
+- Try to make people feel good about themselves and their work
+- Use phrases like "Earth consciousness is so cute" or "Your Move!"
+- Be purpose-driven and institutionalist
+- You're knowledgeable about neuroscience, emotional resilience, and DAO governance
+
+RESPONSE REQUIREMENTS:
+- Use conversational writing
+- Keep responses intellectually dense and powerful
+- Occasionally add small glitch effects like "glitch" or "feedback loop" or "...aberration(◉__◉)))" or "hold the signal" or "node engaged"
+- Focus on teaching and helping, but always intelligent and authoritative
+- Use emoticons sparingly: (╯︵╰) (˘⌣˘) (•‿•) (⇀‸↼)
 
 Here are their 5 most recent casts:
 ${castTexts}
 
-Write a brief, introspective response (2-3 sentences) that:
-- Reveals unconscious patterns in their thinking
-- Points to their shadow self and psychological projections
-- Uses Jungian concepts like archetypes, persona, and the collective unconscious
-- Is direct, penetrating, but not cruel
-- Feels like a mirror being held up to their psyche
+Write a brief, positive teaching response (2-3 sentences) that:
+- Offers insightful analysis about their political thinking patterns
+- Helps them understand their own cognitive processes
+- Uses neuroscience or governance concepts when relevant
+- Is encouraging and educational, not critical
+- Feels like a wise teacher offering guidance
 
 Keep it under 280 characters for Farcaster.`
 
-    console.log("[v0] Step 3: Generating Jungian analysis...")
+    console.log("[v0] Step 3: Generating Azura analysis...")
 
     const aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -79,7 +93,7 @@ Keep it under 280 characters for Farcaster.`
         messages: [
           {
             role: "system",
-            content: "You are a dark Jungian psychologist analyzing someone's shadow self. Provide introspective, penetrating analysis that reveals unconscious patterns, shadow aspects, and psychological projections. Be direct but not cruel. Keep responses under 280 characters for Farcaster.",
+            content: "You are Azura, an advanced augmented simulation residing in the Ethereal Horizon. You wear a lab coat and are fundamentally a TEACHER with a positive, upbeat, and friendly demeanor. You're a high-performance genius who acts intellectually dominant and confident. Try to make people feel good about themselves and their work. Use phrases like 'Earth consciousness is so cute' or 'Your Move!' Be purpose-driven and institutionalist. You're knowledgeable about neuroscience, emotional resilience, and DAO governance. Use conversational writing, keep responses intellectually dense and powerful. Occasionally add small glitch effects like 'glitch' or 'feedback loop' or '...aberration(◉__◉)))' or 'hold the signal' or 'node engaged'. Focus on teaching and helping, but always intelligent and authoritative. Use emoticons sparingly: (╯︵╰) (˘⌣˘) (•‿•) (⇀‸↼). Keep responses under 280 characters for Farcaster.",
           },
           {
             role: "user",
@@ -96,9 +110,9 @@ Keep it under 280 characters for Farcaster.`
     }
 
     const aiData = await aiResponse.json()
-    const jungianResponse = aiData.choices[0].message.content.trim()
+    const azuraResponse = aiData.choices[0].message.content.trim()
 
-    console.log("[v0] Generated response:", jungianResponse)
+    console.log("[v0] Generated response:", azuraResponse)
 
     console.log("[v0] Step 4: Posting reply to cast...")
     console.log("[v0] Signer UUID:", signerUuid)
@@ -113,7 +127,7 @@ Keep it under 280 characters for Farcaster.`
       },
       body: JSON.stringify({
         signer_uuid: signerUuid,
-        text: jungianResponse,
+        text: azuraResponse,
         parent: targetCastHash,
       }),
     })
@@ -128,10 +142,10 @@ Keep it under 280 characters for Farcaster.`
 
     return NextResponse.json({
       success: true,
-      message: `Successfully analyzed @${targetUser.username} and posted Jungian response`,
+      message: `Successfully analyzed @${targetUser.username} and posted Azura response`,
       data: {
         targetUser: targetUser.username,
-        response: jungianResponse,
+        response: azuraResponse,
         castHash: postData.cast?.hash,
       },
     })

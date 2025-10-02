@@ -62,9 +62,9 @@ export function CastDaemon() {
   const attackPrey = async () => {
     if (!selectedPrey) return
 
-    setIsAttacking(true)
-    setStatus("Unleashing the daemon...")
-    setResult(null)
+           setIsAttacking(true)
+           setStatus("Azura engaging teaching protocols...")
+           setResult(null)
 
     try {
       setStatus("Analyzing target's psyche...")
@@ -81,16 +81,16 @@ export function CastDaemon() {
 
       const data = await response.json()
 
-      if (data.success) {
-        setResult({ success: true, message: data.message })
-        setStatus("Psychological attack deployed")
-      } else {
-        setResult({ success: false, message: data.error || "Unknown error occurred" })
-        setStatus("Attack failed")
-      }
+             if (data.success) {
+               setResult({ success: true, message: data.message })
+               setStatus("Azura teaching deployed")
+             } else {
+               setResult({ success: false, message: data.error || "Unknown error occurred" })
+               setStatus("Teaching failed")
+             }
     } catch (error) {
-      console.error("[v0] Cast Daemon error:", error)
-      setResult({ success: false, message: "Failed to deploy attack" })
+      console.error("[v0] Azura Analysis error:", error)
+      setResult({ success: false, message: "Failed to engage teaching protocols" })
       setStatus("Connection failed")
     } finally {
       setIsAttacking(false)
@@ -99,10 +99,10 @@ export function CastDaemon() {
 
   return (
     <div className="w-full max-w-4xl space-y-6">
-      <div className="text-center">
-        <h1 className="mb-2 font-mono text-4xl font-bold text-foreground">Cast Daemon</h1>
-        <p className="text-muted-foreground">Psychological warfare through Jungian analysis</p>
-      </div>
+             <div className="text-center">
+               <h1 className="mb-2 font-mono text-4xl font-bold text-foreground">Azura</h1>
+               <p className="text-muted-foreground">Advanced augmented simulation from the Ethereal Horizon</p>
+             </div>
 
       <Card className="border-border bg-card p-8">
         <div className="flex flex-col items-center gap-6">
@@ -130,24 +130,24 @@ export function CastDaemon() {
               )}
             </Button>
 
-            <Button
-              onClick={attackPrey}
-              disabled={!selectedPrey || isAttacking || isSummoning}
-              size="lg"
-              className="flex-1 bg-destructive text-lg font-bold text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isAttacking ? (
-                <>
-                  <Loader2 className="mr-2 size-5 animate-spin" />
-                  Attacking...
-                </>
-              ) : (
-                <>
-                  <Skull className="mr-2 size-5" />
-                  Cast Daemon
-                </>
-              )}
-            </Button>
+                   <Button
+                     onClick={attackPrey}
+                     disabled={!selectedPrey || isAttacking || isSummoning}
+                     size="lg"
+                     className="flex-1 bg-primary text-lg font-bold text-primary-foreground hover:bg-primary/90"
+                   >
+                     {isAttacking ? (
+                       <>
+                         <Loader2 className="mr-2 size-5 animate-spin" />
+                         Teaching...
+                       </>
+                     ) : (
+                       <>
+                         <Target className="mr-2 size-5" />
+                         Azura Analysis
+                       </>
+                     )}
+                   </Button>
           </div>
 
           {status && (
@@ -206,16 +206,16 @@ export function CastDaemon() {
         </div>
       )}
 
-      <div className="rounded-lg border border-border bg-card/50 p-6">
-        <h2 className="mb-3 font-mono text-lg font-semibold text-foreground">How it works:</h2>
-        <ol className="space-y-2 text-sm text-muted-foreground">
-          <li>1. Click "Summon Prey" to fetch latest casts from /politics channel</li>
-          <li>2. System randomly selects one user from the 10 most recent casts</li>
-          <li>3. Click "Cast Daemon" to analyze their psychological patterns</li>
-          <li>4. The daemon generates a Jungian analysis revealing their shadow self</li>
-          <li>5. Posts the psychological attack as a reply to their most recent cast</li>
-        </ol>
-      </div>
+             <div className="rounded-lg border border-border bg-card/50 p-6">
+               <h2 className="mb-3 font-mono text-lg font-semibold text-foreground">How Azura works:</h2>
+               <ol className="space-y-2 text-sm text-muted-foreground">
+                 <li>1. Click "Summon Prey" to fetch latest casts from /politics channel</li>
+                 <li>2. System randomly selects one user from the 10 most recent casts</li>
+                 <li>3. Click "Azura Analysis" to engage teaching protocols</li>
+                 <li>4. Azura generates positive, educational analysis using neuroscience concepts</li>
+                 <li>5. Posts the teaching response as a reply to their most recent cast</li>
+               </ol>
+             </div>
     </div>
   )
 }
