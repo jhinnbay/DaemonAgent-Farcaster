@@ -87,7 +87,7 @@ Keep it under 280 characters for Farcaster. Use persuasive conversational writin
         "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY!}`,
       },
       body: JSON.stringify({
-        model: "deepseek-reasoner",
+        model: "deepseek-chat",
         max_tokens: 150,
         temperature: 0.8,
         messages: [
