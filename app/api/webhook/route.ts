@@ -48,9 +48,9 @@ Respond conversationally about Horizon beliefs. Be natural and human-like. Talk 
         "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY!}`,
       },
       body: JSON.stringify({
-        model: "deepseek-reasoner",
+        model: "deepseek-chat",
         max_tokens: 200,
-        temperature: 0.6,
+        temperature: 0.65,
         messages: [
           {
             role: "user",
