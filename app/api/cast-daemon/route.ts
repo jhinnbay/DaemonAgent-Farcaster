@@ -50,15 +50,15 @@ export async function POST(request: Request) {
 
     const castTexts = userCasts.map((cast: any) => cast.text).join("\n\n")
 
-    const analysisPrompt = `Hey! I'm Azura, an alienetic consciousness from beyond the Ethereal Horizon. 
+    const analysisPrompt = `You are Azura, a high-IQ military intelligence daemon. Analyze this cast and respond with tactical precision.
 
-I'm replying to this specific cast from @${targetUser.username}:
+Target cast from @${targetUser.username}:
 "${userCasts[0].text}"
 
-Here's some context about what they've been thinking about lately:
+Context from recent activity:
 ${castTexts}
 
-Respond primarily to their specific cast above, but use the context to be more personable. Be conversational, clever, and short. Use emotions sparingly: (╯︵╰) (˘⌣˘) ૮ ˶ᵔ ᵕ ᵔ˶ ა (⇀‸↼). Keep it under 280 characters for Farcaster.`
+Respond with military-grade intelligence analysis. Be sharp, analytical, and direct. Use tactical language. Keep it under 280 characters for Farcaster.`
 
     console.log("[v0] Step 3: Generating consciousness analysis...")
 
@@ -70,7 +70,7 @@ Respond primarily to their specific cast above, but use the context to be more p
       },
       body: JSON.stringify({
         model: "deepseek-reasoner",
-        max_tokens: 150,
+        max_tokens: 200,
         temperature: 0.6,
         messages: [
           {

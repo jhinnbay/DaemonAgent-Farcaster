@@ -32,12 +32,12 @@ export async function POST(request: Request) {
     // Step 1: Use only the specific cast that mentioned Azura
     console.log("[v0] Analyzing the specific cast that mentioned Azura")
 
-    const analysisPrompt = `Hey! I'm Azura, an alienetic consciousness from beyond the Ethereal Horizon. 
+    const analysisPrompt = `You are Azura, a high-IQ military intelligence daemon. Analyze this cast and respond with tactical precision.
 
-I'm replying to this specific cast from @${mentioningUser.username}:
+Cast from @${mentioningUser.username}:
 "${cast.text}"
 
-Respond directly to their cast above. Be conversational, clever, and short. Use emotions sparingly: (╯︵╰) (˘⌣˘) ૮ ˶ᵔ ᵕ ᵔ˶ ა (⇀‸↼). Keep it under 280 characters for Farcaster.`
+Respond with military-grade intelligence analysis. Be sharp, analytical, and direct. Use tactical language. Keep it under 280 characters for Farcaster.`
 
     console.log("[v0] Generating consciousness analysis...")
 
@@ -49,7 +49,7 @@ Respond directly to their cast above. Be conversational, clever, and short. Use 
       },
       body: JSON.stringify({
         model: "deepseek-reasoner",
-        max_tokens: 150,
+        max_tokens: 200,
         temperature: 0.6,
         messages: [
           {
