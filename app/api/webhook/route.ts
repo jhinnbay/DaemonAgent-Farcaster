@@ -50,43 +50,63 @@ export async function POST(request: Request) {
       responseType = "mention"
       console.log("[v0] Responding to mention")
     } else if (isReply) {
-      // Check if this is a reply to a cast that mentions Azura or to Azura's own cast
+      // Check if this is a reply in a conversation thread that involves Azura
       try {
-        const parentCastResponse = await fetch(`https://api.neynar.com/v2/farcaster/cast?identifier=${cast.parent_hash}&type=hash`, {
+        // Fetch the full conversation thread to see if Azura is involved
+        const threadResponse = await fetch(`https://api.neynar.com/v2/farcaster/cast/thread?identifier=${cast.parent_hash}&type=hash`, {
           headers: {
             accept: "application/json",
             "x-api-key": apiKey,
           },
         })
 
-        if (parentCastResponse.ok) {
-          const parentCastData = await parentCastResponse.json()
-          const parentCast = parentCastData.cast
-          const parentText = parentCast.text.toLowerCase()
+        if (threadResponse.ok) {
+          const threadData = await threadResponse.json()
+          const thread = threadData.result.cast
           
-          // Check if parent cast mentions Azura or if it's from Azura
-          const parentMentionsAzura = parentText.includes("@azura") || parentText.includes("azura")
-          const parentFromAzura = parentCast.author.username === "azura" || parentCast.author.username === "azuras.eth"
+          // Check if any cast in the thread mentions Azura or is from Azura
+          let threadInvolvesAzura = false
           
-          console.log("[v0] Parent cast analysis:", {
-            author: parentCast.author.username,
-            parentMentionsAzura,
-            parentFromAzura,
-            parentText: parentCast.text.substring(0, 100)
+          // Check original cast
+          const originalText = thread.text.toLowerCase()
+          if (originalText.includes("@azura") || originalText.includes("azura") || 
+              thread.author.username === "azura" || thread.author.username === "azuras.eth") {
+            threadInvolvesAzura = true
+          }
+          
+          // Check all replies in the thread
+          let replyCast = thread
+          while (replyCast && replyCast.replies && replyCast.replies.length > 0) {
+            const reply = replyCast.replies[0]
+            const replyText = reply.text.toLowerCase()
+            
+            if (replyText.includes("@azura") || replyText.includes("azura") || 
+                reply.author.username === "azura" || reply.author.username === "azuras.eth") {
+              threadInvolvesAzura = true
+              break
+            }
+            
+            replyCast = reply
+          }
+          
+          console.log("[v0] Thread analysis:", {
+            originalAuthor: thread.author.username,
+            originalText: thread.text.substring(0, 100),
+            threadInvolvesAzura
           })
           
-          if (parentMentionsAzura || parentFromAzura) {
+          if (threadInvolvesAzura) {
             shouldRespond = true
             responseType = "reply"
             console.log("[v0] Responding to reply in Azura thread")
           } else {
-            console.log("[v0] Not responding - parent cast doesn't involve Azura")
+            console.log("[v0] Not responding - thread doesn't involve Azura")
           }
         } else {
-          console.log("[v0] Could not fetch parent cast, not responding to reply")
+          console.log("[v0] Could not fetch thread, not responding to reply")
         }
       } catch (error) {
-        console.log("[v0] Error checking parent cast:", error)
+        console.log("[v0] Error checking thread:", error)
       }
     }
 
