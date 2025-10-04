@@ -18,7 +18,7 @@ export async function POST(req: Request) {
       headers: {
         accept: "application/json",
         "content-type": "application/json",
-        api_key: process.env.NEYNAR_API_KEY,
+        "x-api-key": process.env.NEYNAR_API_KEY,
       },
       body: JSON.stringify({
         signer_uuid: process.env.NEYNAR_SIGNER_UUID,

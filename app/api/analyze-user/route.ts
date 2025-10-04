@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const userResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/by_username?username=${username}`, {
       headers: {
         accept: "application/json",
-        api_key: process.env.NEYNAR_API_KEY,
+        "x-api-key": process.env.NEYNAR_API_KEY,
       },
     })
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       {
         headers: {
           accept: "application/json",
-          api_key: process.env.NEYNAR_API_KEY,
+          "x-api-key": process.env.NEYNAR_API_KEY,
         },
       },
     )

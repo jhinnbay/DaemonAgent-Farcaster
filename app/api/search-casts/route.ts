@@ -13,7 +13,7 @@ export async function POST(req: Request) {
       {
         headers: {
           accept: "application/json",
-          api_key: process.env.NEYNAR_API_KEY,
+          "x-api-key": process.env.NEYNAR_API_KEY,
         },
       },
     )
