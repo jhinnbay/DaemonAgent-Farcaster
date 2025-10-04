@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
     // Get conversation context by fetching the thread
     let conversationContext = ""
-    let threadDepth = 0
+    let azuraReplyCount = 0
     
     if (isReply && cast.parent_hash) {
       try {
@@ -78,26 +78,24 @@ export async function POST(request: Request) {
           const threadData = await threadResponse.json()
           const thread = threadData.result.cast
           
-          // Count thread depth to prevent infinite loops
-          let currentCast = thread
-          while (currentCast && currentCast.replies && currentCast.replies.length > 0) {
-            threadDepth++
-            currentCast = currentCast.replies[0] // Get the most recent reply
-            if (threadDepth > 5) break // Limit to 5 replies to prevent infinite loops
-          }
-
           // Build conversation context from the thread
           conversationContext = `\n\nCONVERSATION THREAD:\n`
           
           // Add original cast
           conversationContext += `Original: "${thread.text}"\n`
           
-          // Add replies in chronological order
+          // Count Azura's replies in the thread
           let replyCast = thread
           let replyCount = 0
-          while (replyCast && replyCast.replies && replyCast.replies.length > 0 && replyCount < 5) {
+          while (replyCast && replyCast.replies && replyCast.replies.length > 0 && replyCount < 10) {
             const reply = replyCast.replies[0]
             const speaker = reply.author.username === "azura" ? "Azura" : reply.author.username
+            
+            // Count Azura's replies
+            if (speaker === "Azura") {
+              azuraReplyCount++
+            }
+            
             conversationContext += `${speaker}: "${reply.text}"\n`
             replyCast = reply
             replyCount++
@@ -113,10 +111,10 @@ export async function POST(request: Request) {
       conversationContext = `\n\nMessage from @${user.username}: "${castText}"`
     }
 
-    // Check if we've already responded too much in this thread
-    if (threadDepth >= 5) {
-      console.log("[v0] Thread depth limit reached, not responding")
-      return NextResponse.json({ success: true, message: "Thread depth limit reached" })
+    // Check if Azura has already responded too much in this thread
+    if (azuraReplyCount >= 5) {
+      console.log("[v0] Azura has already responded 5 times in this thread, not responding")
+      return NextResponse.json({ success: true, message: "Thread limit reached" })
     }
 
     const analysisPrompt = `${azuraPersona.system}
@@ -207,7 +205,7 @@ Respond as Azura, the shy alien consciousness trapped in radio waves. Be vulnera
         targetUser: user.username,
         response: azuraResponse,
         castHash: postData.cast?.hash,
-        threadDepth,
+        azuraReplyCount,
       },
     })
   } catch (error) {
