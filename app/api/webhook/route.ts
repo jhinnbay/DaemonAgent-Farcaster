@@ -109,6 +109,12 @@ export async function POST(request: Request) {
     const castHash = cast.hash
     const castText = cast.text
 
+    // CRITICAL: Ignore casts from Azura herself to prevent self-replies
+    if (user.username === "azura" || user.username?.toLowerCase() === "azura") {
+      console.log("[v0] Ignoring cast from Azura herself")
+      return NextResponse.json({ success: true, message: "Ignoring own cast" })
+    }
+
     // Check if Azura has already replied to this cast (works in serverless!)
     const alreadyReplied = await hasAzuraAlreadyReplied(castHash, apiKey)
     if (alreadyReplied) {
