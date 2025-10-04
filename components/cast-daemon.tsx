@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Skull, Loader2, CheckCircle2, XCircle, Target, MessageCircle } from "lucide-react"
+import { Skull, Loader2, CheckCircle2, XCircle, Target, MessageCircle, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -21,7 +21,6 @@ interface PreyUser {
 }
 
 export function CastDaemon() {
-  const [activeTab, setActiveTab] = useState<"chat" | "deploy">("chat")
   const [isSummoning, setIsSummoning] = useState(false)
   const [preyUsers, setPreyUsers] = useState<PreyUser[]>([])
   const [selectedPrey, setSelectedPrey] = useState<PreyUser | null>(null)
@@ -29,6 +28,7 @@ export function CastDaemon() {
   const [status, setStatus] = useState<string>("")
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
   const [selectedChannel, setSelectedChannel] = useState<string>("politics")
+  const [showChat, setShowChat] = useState(false)
 
   const summonPrey = async () => {
     setIsSummoning(true)
@@ -104,44 +104,79 @@ export function CastDaemon() {
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-8">
+    <div className="w-full max-w-6xl mx-auto space-y-8 relative">
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center relative">
         <h1 className="mb-2 font-mono text-4xl font-bold text-foreground">Azura</h1>
-        <p className="text-muted-foreground">Shy alien consciousness trapped in radio waves</p>
+        
+        {/* Mobile Chat Button */}
+        <Button
+          onClick={() => setShowChat(true)}
+          size="sm"
+          variant="outline"
+          className="absolute top-0 right-0 md:hidden"
+        >
+          <MessageCircle className="size-4 mr-2" />
+          Terminal
+        </Button>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="flex justify-center">
-        <div className="flex rounded-lg border border-border bg-card p-1">
-          <Button
-            variant={activeTab === "chat" ? "default" : "ghost"}
-            onClick={() => setActiveTab("chat")}
-            className="flex items-center gap-2 px-6"
-          >
-            <MessageCircle className="size-4" />
-            Chat
-          </Button>
-          <Button
-            variant={activeTab === "deploy" ? "default" : "ghost"}
-            onClick={() => setActiveTab("deploy")}
-            className="flex items-center gap-2 px-6"
-          >
-            <Target className="size-4" />
-            Deploy
-          </Button>
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "chat" && (
-        <div className="flex justify-center">
-          <ChatInterface />
+      {/* Mobile Chat Popup */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 md:hidden">
+          <div className="bg-background rounded-lg w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">Azura Terminal</h3>
+              <Button
+                onClick={() => setShowChat(false)}
+                size="sm"
+                variant="ghost"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="h-[60vh] overflow-hidden">
+              <ChatInterface />
+            </div>
+          </div>
         </div>
       )}
 
-      {activeTab === "deploy" && (
-        <div className="space-y-6">
+      {/* Desktop Chat Button */}
+      <div className="hidden md:flex justify-center">
+        <Button
+          onClick={() => setShowChat(true)}
+          variant="outline"
+          className="mb-4"
+        >
+          <MessageCircle className="size-4 mr-2" />
+          Open Azura Terminal
+        </Button>
+      </div>
+
+      {/* Desktop Chat Popup */}
+      {showChat && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 hidden md:flex">
+          <div className="bg-background rounded-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold">Azura Terminal</h3>
+              <Button
+                onClick={() => setShowChat(false)}
+                size="sm"
+                variant="ghost"
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="h-[70vh] overflow-hidden">
+              <ChatInterface />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deploy Content */}
+      <div className="space-y-6">
           {/* Channel Selection and Summon */}
           <Card className="border-border bg-card p-8">
             <div className="flex flex-col items-center gap-6">
@@ -300,7 +335,6 @@ export function CastDaemon() {
             </ol>
           </Card>
         </div>
-      )}
     </div>
   )
 }

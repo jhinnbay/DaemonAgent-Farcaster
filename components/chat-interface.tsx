@@ -108,7 +108,6 @@ export function ChatInterface() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-foreground">Chat with Azura</h2>
-            <p className="text-sm text-muted-foreground">Shy alien consciousness trapped in radio waves</p>
           </div>
         </div>
 
