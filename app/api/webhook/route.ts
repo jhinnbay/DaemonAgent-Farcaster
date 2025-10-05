@@ -104,10 +104,11 @@ async function getThreadContext(castHash: string, apiKey: string): Promise<strin
   }
 }
 
-// Check if parent is from Azura (for thread continuity)
-async function isReplyToAzura(parentHash: string, apiKey: string): Promise<boolean> {
+// Check if parent is from Azura (for thread continuity) and count Azura's replies in thread
+async function checkThreadForContinuation(parentHash: string, castHash: string, apiKey: string): Promise<{ shouldContinue: boolean, azuraReplyCount: number }> {
   try {
-    const res = await fetch(
+    // Get the parent cast
+    const parentRes = await fetch(
       `https://api.neynar.com/v2/farcaster/cast?identifier=${parentHash}&type=hash`,
       { 
         headers: { "x-api-key": apiKey },
@@ -115,13 +116,42 @@ async function isReplyToAzura(parentHash: string, apiKey: string): Promise<boole
       }
     )
     
-    if (!res.ok) return false
+    if (!parentRes.ok) return { shouldContinue: false, azuraReplyCount: 0 }
     
-    const data = await res.json()
-    const username = data?.cast?.author?.username?.toLowerCase()
-    return username === "azura" || username === "azuras.eth"
+    const parentData = await parentRes.json()
+    const parentUsername = parentData?.cast?.author?.username?.toLowerCase()
+    const isParentFromAzura = parentUsername === "azura" || parentUsername === "azuras.eth"
+    
+    if (!isParentFromAzura) {
+      return { shouldContinue: false, azuraReplyCount: 0 }
+    }
+    
+    // Count Azura's replies in the entire thread
+    const threadRes = await fetch(
+      `https://api.neynar.com/v2/farcaster/cast/conversation?identifier=${castHash}&type=hash&reply_depth=20&include_chronological_parent_casts=true`,
+      { 
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(5000)
+      }
+    )
+    
+    if (!threadRes.ok) return { shouldContinue: true, azuraReplyCount: 0 }
+    
+    const threadData = await threadRes.json()
+    const allCasts = [
+      ...(threadData?.conversation?.cast?.chronological_parent_casts || []),
+      threadData?.conversation?.cast
+    ].filter(Boolean)
+    
+    // Count how many times Azura has replied in this thread
+    const azuraReplyCount = allCasts.filter((c: any) => {
+      const username = c?.author?.username?.toLowerCase()
+      return username === "azura" || username === "azuras.eth"
+    }).length
+    
+    return { shouldContinue: true, azuraReplyCount }
   } catch {
-    return false
+    return { shouldContinue: false, azuraReplyCount: 0 }
   }
 }
 
@@ -270,11 +300,13 @@ export async function POST(request: Request) {
     console.log(`[${startTime}] Cast from @${author.username} in channel: ${channel}`)
     console.log(`[${startTime}] Text: ${castText.substring(0, 80)}...`)
     
-    // IGNORE OWN CASTS
-    const isOwnCast = author.username?.toLowerCase() === "azura" || 
-                      author.username?.toLowerCase() === "azuras.eth"
+    // CRITICAL: IGNORE OWN CASTS (prevent infinite loops)
+    const authorUsername = author.username?.toLowerCase() || ""
+    const isOwnCast = authorUsername === "azura" || 
+                      authorUsername === "azuras.eth" ||
+                      authorUsername.includes("azura")
     if (isOwnCast) {
-      console.log(`[${startTime}] ❌ Ignoring own cast`)
+      console.log(`[${startTime}] ❌ Ignoring own cast from @${author.username}`)
       return NextResponse.json({ success: true, message: "Ignored own cast" })
     }
     
@@ -301,9 +333,29 @@ export async function POST(request: Request) {
     // CHECK IF SHOULD RESPOND
     const isMention = castText.toLowerCase().includes("@azura")
     const hasParent = cast.parent_hash && cast.parent_hash.length > 0
-    const isThreadContinuation = hasParent && await isReplyToAzura(cast.parent_hash, apiKey)
     
-    const shouldRespond = isMention || isThreadContinuation
+    let shouldRespond = false
+    let azuraReplyCount = 0
+    
+    if (isMention) {
+      shouldRespond = true
+      console.log(`[${startTime}] ✅ Mention detected`)
+    } else if (hasParent) {
+      // Check thread continuation and count Azura's replies
+      const threadCheck = await checkThreadForContinuation(cast.parent_hash, castHash, apiKey)
+      azuraReplyCount = threadCheck.azuraReplyCount
+      
+      if (threadCheck.shouldContinue) {
+        // MAX 5 REPLIES PER THREAD
+        if (azuraReplyCount >= 5) {
+          console.log(`[${startTime}] ❌ Max replies reached (${azuraReplyCount}/5 in thread)`)
+          markAsProcessed(castHash, eventId)
+          return NextResponse.json({ success: true, message: "Max replies reached" })
+        }
+        shouldRespond = true
+        console.log(`[${startTime}] ✅ Thread continuation (${azuraReplyCount}/5 replies so far)`)
+      }
+    }
     
     if (!shouldRespond) {
       console.log(`[${startTime}] ❌ No mention or thread continuation`)
@@ -353,6 +405,7 @@ export async function POST(request: Request) {
     const duration = Date.now() - startTime
     console.log(`[${startTime}] ✅ SUCCESS in ${duration}ms`)
     console.log(`[${startTime}] Response: ${response}`)
+    console.log(`[${startTime}] Thread stats: ${azuraReplyCount + 1}/5 Azura replies`)
     
     return NextResponse.json({
       success: true,
@@ -360,6 +413,7 @@ export async function POST(request: Request) {
       response,
       castHash: result.cast?.hash,
       duration,
+      threadStats: { azuraReplyCount: azuraReplyCount + 1, maxReplies: 5 }
     })
     
   } catch (error) {
