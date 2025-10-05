@@ -1,35 +1,66 @@
 import { NextResponse } from "next/server"
 import azuraPersona from "@/lib/azura-persona.json"
 
-// Simple in-memory dedup (prevents duplicate processing in same instance)
-const recentCasts = new Map<string, number>()
-const DEDUP_WINDOW = 120000 // 2 minutes
+// MULTI-LAYER DEDUPLICATION
+// Layer 1: Event ID tracking (webhooks may send duplicate events)
+const processedEvents = new Set<string>()
 
-function isDuplicate(castHash: string): boolean {
+// Layer 2: Cast hash tracking with timestamps
+const processedCasts = new Map<string, number>()
+const DEDUP_WINDOW = 180000 // 3 minutes
+
+// Layer 3: Processing locks (prevent concurrent processing of same cast)
+const processingLocks = new Set<string>()
+
+function cleanupOldEntries() {
   const now = Date.now()
-  const lastSeen = recentCasts.get(castHash)
-  
-  // Clean old entries
-  for (const [hash, time] of recentCasts.entries()) {
+  for (const [hash, time] of processedCasts.entries()) {
     if (now - time > DEDUP_WINDOW) {
-      recentCasts.delete(hash)
+      processedCasts.delete(hash)
     }
   }
-  
-  if (lastSeen && now - lastSeen < DEDUP_WINDOW) {
+}
+
+function markAsProcessed(castHash: string, eventId?: string) {
+  if (eventId) processedEvents.add(eventId)
+  processedCasts.set(castHash, Date.now())
+  processingLocks.delete(castHash)
+}
+
+function isAlreadyProcessing(castHash: string): boolean {
+  if (processingLocks.has(castHash)) {
     return true
   }
-  
-  recentCasts.set(castHash, now)
+  processingLocks.add(castHash)
   return false
 }
 
-// Check if Azura already replied to this cast
-async function alreadyReplied(castHash: string, apiKey: string, botUsername: string = "azura"): Promise<boolean> {
+function wasRecentlyProcessed(castHash: string, eventId?: string): boolean {
+  cleanupOldEntries()
+  
+  // Check event ID first
+  if (eventId && processedEvents.has(eventId)) {
+    return true
+  }
+  
+  // Check cast hash
+  const lastProcessed = processedCasts.get(castHash)
+  if (lastProcessed && Date.now() - lastProcessed < DEDUP_WINDOW) {
+    return true
+  }
+  
+  return false
+}
+
+// Check if Azura already replied via API
+async function hasAzuraReplied(castHash: string, apiKey: string): Promise<boolean> {
   try {
     const res = await fetch(
       `https://api.neynar.com/v2/farcaster/cast/conversation?identifier=${castHash}&type=hash&reply_depth=1&include_chronological_parent_casts=false`,
-      { headers: { "x-api-key": apiKey } }
+      { 
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      }
     )
     
     if (!res.ok) return false
@@ -37,18 +68,25 @@ async function alreadyReplied(castHash: string, apiKey: string, botUsername: str
     const data = await res.json()
     const replies = data?.conversation?.cast?.direct_replies || []
     
-    return replies.some((r: any) => r.author.username?.toLowerCase() === botUsername.toLowerCase())
-  } catch {
+    return replies.some((r: any) => 
+      r.author.username?.toLowerCase() === "azura" || 
+      r.author.username?.toLowerCase() === "azuras.eth"
+    )
+  } catch (error) {
+    console.error("[API Check] Error:", error)
     return false
   }
 }
 
-// Fetch last N casts in thread for context
-async function getThreadContext(castHash: string, apiKey: string, limit: number = 5): Promise<string> {
+// Get thread context (last 5 messages)
+async function getThreadContext(castHash: string, apiKey: string): Promise<string> {
   try {
     const res = await fetch(
       `https://api.neynar.com/v2/farcaster/cast/conversation?identifier=${castHash}&type=hash&reply_depth=10&include_chronological_parent_casts=true`,
-      { headers: { "x-api-key": apiKey } }
+      { 
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(5000)
+      }
     )
     
     if (!res.ok) return ""
@@ -56,8 +94,8 @@ async function getThreadContext(castHash: string, apiKey: string, limit: number 
     const data = await res.json()
     const chronological = data?.conversation?.cast?.chronological_parent_casts || []
     
-    // Get last N messages
-    const recent = chronological.slice(-limit)
+    // Get last 5 messages for context
+    const recent = chronological.slice(-5)
     return recent
       .map((c: any) => `@${c.author.username}: ${c.text}`)
       .join("\n")
@@ -66,48 +104,39 @@ async function getThreadContext(castHash: string, apiKey: string, limit: number 
   }
 }
 
-// Check if parent cast is from Azura (for thread continuity)
-async function isReplyToAzura(parentHash: string, apiKey: string, botUsername: string = "azura"): Promise<boolean> {
+// Check if parent is from Azura (for thread continuity)
+async function isReplyToAzura(parentHash: string, apiKey: string): Promise<boolean> {
   try {
     const res = await fetch(
       `https://api.neynar.com/v2/farcaster/cast?identifier=${parentHash}&type=hash`,
-      { headers: { "x-api-key": apiKey } }
+      { 
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(5000)
+      }
     )
     
     if (!res.ok) return false
     
     const data = await res.json()
-    return data?.cast?.author?.username?.toLowerCase() === botUsername.toLowerCase()
+    const username = data?.cast?.author?.username?.toLowerCase()
+    return username === "azura" || username === "azuras.eth"
   } catch {
     return false
   }
 }
 
-// Post a reply
-async function postReply(text: string, parentHash: string, apiKey: string, signerUuid: string) {
-  const res = await fetch("https://api.neynar.com/v2/farcaster/cast", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      signer_uuid: signerUuid,
-      text,
-      parent: parentHash,
-    }),
-  })
-  
-  if (!res.ok) {
-    const error = await res.text()
-    throw new Error(`Failed to post: ${error}`)
+// Generate response using DeepSeek
+async function generateResponse(
+  userMessage: string, 
+  username: string, 
+  threadContext: string,
+  inWrongChannel: boolean = false
+): Promise<string> {
+  // Special response for wrong channel
+  if (inWrongChannel) {
+    return "i can only speak in /murder... because i've been murdered 💀 find me there if you want to talk"
   }
   
-  return res.json()
-}
-
-// Generate response using DeepSeek
-async function generateResponse(userMessage: string, username: string, threadContext: string = ""): Promise<string> {
   const contextSection = threadContext 
     ? `\n\nRECENT CONVERSATION:\n${threadContext}\n\nCurrent message from @${username}: "${userMessage}"`
     : `\n\nMessage from @${username}: "${userMessage}"`
@@ -163,7 +192,32 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
   return response
 }
 
+// Post reply to Farcaster
+async function postReply(text: string, parentHash: string, apiKey: string, signerUuid: string) {
+  const res = await fetch("https://api.neynar.com/v2/farcaster/cast", {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      signer_uuid: signerUuid,
+      text,
+      parent: parentHash,
+    }),
+  })
+  
+  if (!res.ok) {
+    const error = await res.text()
+    throw new Error(`Failed to post: ${error}`)
+  }
+  
+  return res.json()
+}
+
 export async function POST(request: Request) {
+  const startTime = Date.now()
+  
   try {
     const apiKey = process.env.NEYNAR_API_KEY
     const signerUuid = process.env.NEYNAR_SIGNER_UUID
@@ -173,6 +227,9 @@ export async function POST(request: Request) {
     }
     
     const event = await request.json()
+    const eventId = event.id || event.created_at?.toString() // Webhook event ID
+    
+    console.log(`[${startTime}] Webhook received:`, event.type, eventId?.substring(0, 8))
     
     // Only handle cast.created events
     if (event.type !== "cast.created") {
@@ -183,80 +240,114 @@ export async function POST(request: Request) {
     const author = cast.author
     const castHash = cast.hash
     const castText = cast.text || ""
+    const channel = cast.parent_url || cast.channel?.parent_url || ""
     
-    console.log(`[Webhook] Cast from @${author.username}: ${castText.substring(0, 50)}...`)
+    console.log(`[${startTime}] Cast from @${author.username} in channel: ${channel}`)
+    console.log(`[${startTime}] Text: ${castText.substring(0, 80)}...`)
     
-    // Ignore own casts
-    if (author.username?.toLowerCase() === "azura") {
-      console.log("[Webhook] Ignoring own cast")
+    // IGNORE OWN CASTS
+    const isOwnCast = author.username?.toLowerCase() === "azura" || 
+                      author.username?.toLowerCase() === "azuras.eth"
+    if (isOwnCast) {
+      console.log(`[${startTime}] ❌ Ignoring own cast`)
       return NextResponse.json({ success: true, message: "Ignored own cast" })
     }
     
-    // Dedup check
-    if (isDuplicate(castHash)) {
-      console.log("[Webhook] Duplicate cast, ignoring")
-      return NextResponse.json({ success: true, message: "Duplicate" })
+    // DEDUP LAYER 1: Event ID + Cast Hash
+    if (wasRecentlyProcessed(castHash, eventId)) {
+      console.log(`[${startTime}] ❌ Already processed (in-memory)`)
+      return NextResponse.json({ success: true, message: "Already processed" })
     }
     
-    // Check if already replied
-    if (await alreadyReplied(castHash, apiKey)) {
-      console.log("[Webhook] Already replied to this cast")
+    // DEDUP LAYER 2: Processing lock (prevent concurrent processing)
+    if (isAlreadyProcessing(castHash)) {
+      console.log(`[${startTime}] ❌ Another worker is processing this cast`)
+      return NextResponse.json({ success: true, message: "Already processing" })
+    }
+    
+    // DEDUP LAYER 3: API check for existing replies
+    console.log(`[${startTime}] Checking for existing replies...`)
+    if (await hasAzuraReplied(castHash, apiKey)) {
+      console.log(`[${startTime}] ❌ Already replied (API check)`)
+      markAsProcessed(castHash, eventId)
       return NextResponse.json({ success: true, message: "Already replied" })
     }
     
+    // CHECK IF SHOULD RESPOND
     const isMention = castText.toLowerCase().includes("@azura")
     const hasParent = cast.parent_hash && cast.parent_hash.length > 0
+    const isThreadContinuation = hasParent && await isReplyToAzura(cast.parent_hash, apiKey)
     
-    let shouldRespond = false
-    let responseType = ""
-    
-    if (isMention) {
-      // Always respond to mentions
-      shouldRespond = true
-      responseType = "mention"
-      console.log("[Webhook] Responding to mention")
-    } else if (hasParent && await isReplyToAzura(cast.parent_hash, apiKey)) {
-      // Respond if replying to Azura's cast (thread continuity)
-      shouldRespond = true
-      responseType = "thread_reply"
-      console.log("[Webhook] Responding to thread reply")
-    }
+    const shouldRespond = isMention || isThreadContinuation
     
     if (!shouldRespond) {
-      console.log("[Webhook] No reason to respond")
+      console.log(`[${startTime}] ❌ No mention or thread continuation`)
+      markAsProcessed(castHash, eventId)
       return NextResponse.json({ success: true, message: "No response needed" })
     }
     
-    // Get thread context for better responses
-    const threadContext = hasParent ? await getThreadContext(castHash, apiKey, 5) : ""
+    // CHECK CHANNEL RESTRICTION
+    const isInMurderChannel = channel.includes("/murder") || channel.includes("murder")
+    const inWrongChannel = !isInMurderChannel
     
-    // Generate response
-    console.log("[Webhook] Generating response...")
-    const response = await generateResponse(castText, author.username, threadContext)
-    
-    // Final check before posting
-    if (await alreadyReplied(castHash, apiKey)) {
-      console.log("[Webhook] Another instance already replied")
-      return NextResponse.json({ success: true, message: "Already replied" })
+    if (inWrongChannel && !isMention) {
+      // If not mentioned and wrong channel, just ignore
+      console.log(`[${startTime}] ❌ Wrong channel (not /murder) and no mention`)
+      markAsProcessed(castHash, eventId)
+      return NextResponse.json({ success: true, message: "Wrong channel" })
     }
     
-    // Post reply
-    console.log("[Webhook] Posting reply...")
+    console.log(`[${startTime}] ✅ Should respond. Channel: ${isInMurderChannel ? "murder" : "other"}`)
+    
+    // GET CONTEXT
+    const threadContext = hasParent ? await getThreadContext(castHash, apiKey) : ""
+    
+    // GENERATE RESPONSE
+    console.log(`[${startTime}] Generating response...`)
+    const response = await generateResponse(castText, author.username, threadContext, inWrongChannel)
+    
+    // FINAL CHECK BEFORE POSTING (race condition protection)
+    console.log(`[${startTime}] Final check before posting...`)
+    if (await hasAzuraReplied(castHash, apiKey)) {
+      console.log(`[${startTime}] ❌ Another instance already posted`)
+      markAsProcessed(castHash, eventId)
+      return NextResponse.json({ success: true, message: "Race condition: already replied" })
+    }
+    
+    // POST REPLY
+    console.log(`[${startTime}] Posting reply...`)
     const result = await postReply(response, castHash, apiKey, signerUuid)
     
-    console.log(`[Webhook] ✅ Replied to ${responseType} from @${author.username}`)
+    // MARK AS PROCESSED
+    markAsProcessed(castHash, eventId)
+    
+    const duration = Date.now() - startTime
+    console.log(`[${startTime}] ✅ SUCCESS in ${duration}ms`)
+    console.log(`[${startTime}] Response: ${response}`)
     
     return NextResponse.json({
       success: true,
-      message: `Replied to ${responseType}`,
+      message: "Replied successfully",
       response,
       castHash: result.cast?.hash,
+      duration,
     })
     
   } catch (error) {
-    console.error("[Webhook] Error:", error)
+    const duration = Date.now() - startTime
+    console.error(`[${startTime}] ❌ ERROR after ${duration}ms:`, error)
+    
+    // Clean up processing lock on error
+    if (error instanceof Error) {
+      processingLocks.clear()
+    }
+    
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Unknown error",
+        duration 
+      },
       { status: 500 }
     )
   }
