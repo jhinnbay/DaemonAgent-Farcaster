@@ -271,8 +271,6 @@ async function postReply(text: string, parentHash: string, apiKey: string, signe
 }
 
 export async function POST(request: Request) {
-  const startTime = Date.now()
-  
   try {
     const apiKey = process.env.NEYNAR_API_KEY
     const signerUuid = process.env.NEYNAR_SIGNER_UUID
@@ -283,7 +281,6 @@ export async function POST(request: Request) {
     
     const event = await request.json()
     const eventId = event.id || event.created_at?.toString() // Webhook event ID
-    
     
     // Only handle cast.created events
     if (event.type !== "cast.created") {
@@ -303,7 +300,11 @@ export async function POST(request: Request) {
                       authorUsername === "azuras.eth" ||
                       authorUsername.includes("azura")
     if (isOwnCast) {
-      return NextResponse.json({ success: true, message: "Ignored own cast" })
+      return NextResponse.json({ 
+        success: true, 
+        message: "Ignored own cast",
+        author: author.username 
+      })
     }
     
     // Simple deduplication
@@ -326,9 +327,11 @@ export async function POST(request: Request) {
     
     let shouldRespond = false
     let azuraReplyCount = 0
+    let reason = ""
     
     if (isMention) {
       shouldRespond = true
+      reason = "mention"
     } else if (hasParent) {
       // Check thread continuation and count Azura's replies
       const threadCheck = await checkThreadForContinuation(cast.parent_hash, castHash, apiKey)
@@ -338,15 +341,27 @@ export async function POST(request: Request) {
         // MAX 5 REPLIES PER THREAD
         if (azuraReplyCount >= 5) {
           markAsProcessed(castHash, eventId)
-          return NextResponse.json({ success: true, message: "Max replies reached" })
+          return NextResponse.json({ 
+            success: true, 
+            message: "Max replies reached",
+            reason: "max_replies",
+            count: azuraReplyCount
+          })
         }
         shouldRespond = true
+        reason = "thread_continuation"
       }
     }
     
     if (!shouldRespond) {
       markAsProcessed(castHash, eventId)
-      return NextResponse.json({ success: true, message: "No response needed" })
+      return NextResponse.json({ 
+        success: true, 
+        message: "No response needed",
+        reason: "no_mention_or_thread",
+        isMention,
+        hasParent
+      })
     }
     
     // CHECK CHANNEL RESTRICTION
@@ -356,7 +371,12 @@ export async function POST(request: Request) {
     if (inWrongChannel && !isMention) {
       // If not mentioned and wrong channel, just ignore
       markAsProcessed(castHash, eventId)
-      return NextResponse.json({ success: true, message: "Wrong channel" })
+      return NextResponse.json({ 
+        success: true, 
+        message: "Wrong channel",
+        channel,
+        reason: "wrong_channel"
+      })
     }
     
     // GET CONTEXT
@@ -385,6 +405,9 @@ export async function POST(request: Request) {
       message: "Replied successfully",
       response,
       castHash: result.cast?.hash,
+      reason,
+      author: author.username,
+      channel
     })
     
   } catch (error) {
