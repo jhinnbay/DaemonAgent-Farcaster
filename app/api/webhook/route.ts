@@ -192,6 +192,31 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
   return response
 }
 
+// Like a cast
+async function likeCast(castHash: string, apiKey: string, signerUuid: string) {
+  try {
+    const res = await fetch("https://api.neynar.com/v2/farcaster/reaction", {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        signer_uuid: signerUuid,
+        reaction_type: "like",
+        target: castHash,
+      }),
+    })
+    
+    if (!res.ok) {
+      console.error("Failed to like cast:", await res.text())
+    }
+  } catch (error) {
+    console.error("Error liking cast:", error)
+    // Non-critical, don't throw
+  }
+}
+
 // Post reply to Farcaster
 async function postReply(text: string, parentHash: string, apiKey: string, signerUuid: string) {
   const res = await fetch("https://api.neynar.com/v2/farcaster/cast", {
@@ -313,6 +338,10 @@ export async function POST(request: Request) {
       markAsProcessed(castHash, eventId)
       return NextResponse.json({ success: true, message: "Race condition: already replied" })
     }
+    
+    // LIKE THE CAST (do this before posting reply for better UX)
+    console.log(`[${startTime}] Liking cast...`)
+    await likeCast(castHash, apiKey, signerUuid)
     
     // POST REPLY
     console.log(`[${startTime}] Posting reply...`)
