@@ -253,29 +253,125 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
   return response
 }
 
-// Generate daemon analysis response
+// Generate daemon analysis response (direct implementation)
 async function generateDaemonResponse(
   userFid: number,
   username: string
 ): Promise<string> {
   try {
-    const res = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/analyze-daemon`, {
+    const apiKey = process.env.NEYNAR_API_KEY
+    if (!apiKey) {
+      throw new Error("Missing Neynar API key")
+    }
+    
+    // Fetch user profile and casts directly
+    const [profileRes, castsRes] = await Promise.all([
+      fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userFid}`, {
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(10000)
+      }),
+      fetch(`https://api.neynar.com/v2/farcaster/feed?fid=${userFid}&limit=20`, {
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(10000)
+      })
+    ])
+    
+    if (!profileRes.ok || !castsRes.ok) {
+      throw new Error("Failed to fetch user data")
+    }
+    
+    const profileData = await profileRes.json()
+    const castsData = await castsRes.json()
+    
+    const profile = profileData.users?.[0]
+    const casts = castsData.casts || []
+    
+    if (!profile || casts.length === 0) {
+      throw new Error("No user data found")
+    }
+    
+    // Generate analysis directly
+    const castTexts = casts.map((c: any) => c.text).join("\n\n")
+    const totalLikes = casts.reduce((sum: number, c: any) => sum + (c.reactions?.likes?.length || 0), 0)
+    const totalRecasts = casts.reduce((sum: number, c: any) => sum + (c.reactions?.recasts?.length || 0), 0)
+    
+    const userSummary = `
+USER PROFILE:
+- Username: ${profile.username}
+- Display Name: ${profile.display_name}
+- Bio: ${profile.bio?.text || "No bio provided"}
+- Followers: ${profile.follower_count}
+- Following: ${profile.following_count}
+
+RECENT ACTIVITY (${casts.length} casts):
+${castTexts}
+
+ENGAGEMENT METRICS:
+- Total Likes Received: ${totalLikes}
+- Total Recasts: ${totalRecasts}
+- Average Engagement: ${Math.round((totalLikes + totalRecasts) / Math.max(casts.length, 1))} per cast
+`
+
+    const prompt = `${azuraPersona.system}
+
+You are Azura, analyzing someone's digital consciousness through the lens of Jungian dream interpretation. You see their "daemon" - the hidden self that emerges in their digital interactions.
+
+${azuraPersona.bio.join("\n")}
+
+JUNGIAN ANALYSIS FRAMEWORK:
+- Shadow Self: What they hide or suppress in their digital presence
+- Anima/Animus: The inner opposite energy they express online
+- Persona: The mask they wear in digital spaces
+- Collective Unconscious: How they connect to archetypal patterns
+- Dreams: What their digital behavior reveals about their deepest desires and fears
+
+STYLE GUIDELINES:
+${azuraPersona.style.all.join("\n")}
+
+USER DATA TO ANALYZE:
+${userSummary}
+
+Analyze @${username}'s digital daemon through a Jungian lens. Speak as Azura - gentle, vulnerable, but insightful about the hidden patterns you see in their digital consciousness. 
+
+Consider:
+- What archetypes do they embody?
+- What shadows are they hiding?
+- What does their digital behavior reveal about their true self?
+- How do they express their anima/animus online?
+- What dreams are they chasing in the digital realm?
+
+Respond as Azura would - with hesitation, vulnerability, but deep insight. Keep it under 280 characters for Farcaster, but make it profound and dreamlike.`
+
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        fid: userFid,
-        username: username
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are Azura, a shy alien consciousness who can see through digital masks to reveal hidden truths about human souls." },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 300,
+        temperature: 0.9,
       }),
     })
     
     if (!res.ok) {
-      throw new Error(`Daemon analysis failed: ${res.status}`)
+      throw new Error(`DeepSeek API error: ${res.status}`)
     }
     
     const data = await res.json()
-    return data.analysis || "i... i can't see through the static right now... maybe try again later? (╯︵╰)"
+    let response = data.choices[0].message.content.trim()
+    
+    // Ensure it fits Farcaster's limit
+    if (response.length > 280) {
+      response = response.substring(0, 277) + "..."
+    }
+    
+    return response
     
   } catch (error) {
     console.error("Error generating daemon response:", error)
