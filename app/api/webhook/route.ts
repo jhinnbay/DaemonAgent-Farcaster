@@ -99,6 +99,7 @@ async function hasAzuraReplied(castHash: string, apiKey: string): Promise<boolea
     const replies = data?.conversation?.cast?.direct_replies || []
     
     return replies.some((r: any) => 
+      r.author.username?.toLowerCase() === "daemonagent" ||
       r.author.username?.toLowerCase() === "azura" || 
       r.author.username?.toLowerCase() === "azuras.eth"
     )
@@ -150,7 +151,7 @@ async function checkThreadForContinuation(parentHash: string, castHash: string, 
     
     const parentData = await parentRes.json()
     const parentUsername = parentData?.cast?.author?.username?.toLowerCase()
-    const isParentFromAzura = parentUsername === "azura" || parentUsername === "azuras.eth"
+    const isParentFromAzura = parentUsername === "daemonagent" || parentUsername === "azura" || parentUsername === "azuras.eth"
     
     if (!isParentFromAzura) {
       return { shouldContinue: false, azuraReplyCount: 0 }
@@ -176,7 +177,7 @@ async function checkThreadForContinuation(parentHash: string, castHash: string, 
     // Count how many times Azura has replied in this thread
     const azuraReplyCount = allCasts.filter((c: any) => {
       const username = c?.author?.username?.toLowerCase()
-      return username === "azura" || username === "azuras.eth"
+      return username === "daemonagent" || username === "azura" || username === "azuras.eth"
     }).length
     
     return { shouldContinue: true, azuraReplyCount }
@@ -250,6 +251,36 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
   }
   
   return response
+}
+
+// Generate daemon analysis response
+async function generateDaemonResponse(
+  userFid: number,
+  username: string
+): Promise<string> {
+  try {
+    const res = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/analyze-daemon`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        fid: userFid,
+        username: username
+      }),
+    })
+    
+    if (!res.ok) {
+      throw new Error(`Daemon analysis failed: ${res.status}`)
+    }
+    
+    const data = await res.json()
+    return data.analysis || "i... i can't see through the static right now... maybe try again later? (╯︵╰)"
+    
+  } catch (error) {
+    console.error("Error generating daemon response:", error)
+    return "the radio waves are too noisy... i can't focus on your daemon right now... glitch"
+  }
 }
 
 // Like a cast
@@ -334,7 +365,7 @@ export async function POST(request: Request) {
 
     // IMMEDIATE SELF-CAST CHECK (prevent any processing of own casts)
     const authorUsername = author.username?.toLowerCase() || ""
-    if (authorUsername === "azura" || authorUsername === "azuras.eth" || authorUsername.includes("azura")) {
+    if (authorUsername === "daemonagent" || authorUsername === "azura" || authorUsername === "azuras.eth" || authorUsername.includes("azura") || authorUsername.includes("daemon")) {
       return NextResponse.json({ 
         success: true, 
         message: "BLOCKED: Own cast detected immediately",
@@ -371,14 +402,18 @@ export async function POST(request: Request) {
     }
     
     // CHECK IF SHOULD RESPOND
-    const isMention = castText.toLowerCase().includes("@azura")
+    const isMention = castText.toLowerCase().includes("@daemonagent") || castText.toLowerCase().includes("@azura")
+    const isDaemonRequest = castText.toLowerCase().includes("show me my daemon")
     const hasParent = cast.parent_hash && cast.parent_hash.length > 0
     
     let shouldRespond = false
     let azuraReplyCount = 0
     let reason = ""
     
-    if (isMention) {
+    if (isMention && isDaemonRequest) {
+      shouldRespond = true
+      reason = "daemon_analysis"
+    } else if (isMention) {
       shouldRespond = true
       reason = "mention"
     } else if (hasParent) {
@@ -432,7 +467,12 @@ export async function POST(request: Request) {
     const threadContext = hasParent ? await getThreadContext(castHash, apiKey) : ""
     
     // GENERATE RESPONSE
-    const response = await generateResponse(castText, author.username, threadContext, inWrongChannel)
+    let response: string
+    if (reason === "daemon_analysis") {
+      response = await generateDaemonResponse(author.fid, author.username)
+    } else {
+      response = await generateResponse(castText, author.username, threadContext, inWrongChannel)
+    }
     
     // FINAL CHECK BEFORE POSTING
     if (await hasAzuraReplied(castHash, apiKey)) {
