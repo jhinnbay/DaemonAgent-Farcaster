@@ -190,14 +190,8 @@ async function checkThreadForContinuation(parentHash: string, castHash: string, 
 async function generateResponse(
   userMessage: string, 
   username: string, 
-  threadContext: string,
-  inWrongChannel: boolean = false
+  threadContext: string
 ): Promise<string> {
-  // Special response for wrong channel
-  if (inWrongChannel) {
-    return "i can only speak in /murder... because i've been murdered 💀 find me there if you want to talk"
-  }
-  
   const contextSection = threadContext 
     ? `\n\nRECENT CONVERSATION:\n${threadContext}\n\nCurrent message from @${username}: "${userMessage}"`
     : `\n\nMessage from @${username}: "${userMessage}"`
@@ -544,21 +538,6 @@ export async function POST(request: Request) {
       })
     }
     
-    // CHECK CHANNEL RESTRICTION
-    const isInMurderChannel = channel.includes("/murder") || channel.includes("murder")
-    const inWrongChannel = !isInMurderChannel
-    
-    if (inWrongChannel && !isMention) {
-      // If not mentioned and wrong channel, just ignore
-      markAsProcessed(castHash, eventId)
-      return NextResponse.json({ 
-        success: true, 
-        message: "Wrong channel",
-        channel,
-        reason: "wrong_channel"
-      })
-    }
-    
     // GET CONTEXT
     const threadContext = hasParent ? await getThreadContext(castHash, apiKey) : ""
     
@@ -567,7 +546,7 @@ export async function POST(request: Request) {
     if (reason === "daemon_analysis") {
       response = await generateDaemonResponse(author.fid, author.username)
     } else {
-      response = await generateResponse(castText, author.username, threadContext, inWrongChannel)
+      response = await generateResponse(castText, author.username, threadContext)
     }
     
     // FINAL CHECK BEFORE POSTING
