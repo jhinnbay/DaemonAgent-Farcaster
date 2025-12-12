@@ -612,33 +612,7 @@ export async function POST(request: Request) {
       })
     }
     
-    // CHECK NEYNAR SCORE (must be 0.8 or above)
-    const scoreCheck = await checkNeynarScore(authorFid, apiKey)
-    if (!scoreCheck.allowed) {
-      console.log("[WEBHOOK] User blocked due to low Neynar score:", {
-        username: author.username,
-        fid: authorFid,
-        score: scoreCheck.score
-      })
-      
-      markAsProcessed(castHash, eventId)
-      return NextResponse.json({ 
-        success: true, 
-        message: "User Neynar score below threshold",
-        author: author.username,
-        fid: authorFid,
-        score: scoreCheck.score,
-        required: 0.8
-      })
-    }
-    
-    console.log("[WEBHOOK] User passed Neynar score check:", {
-      username: author.username,
-      fid: authorFid,
-      score: scoreCheck.score
-    })
-    
-    // Simple deduplication
+    // Simple deduplication (moved score check to after interaction type determination)
     if (wasRecentlyProcessed(castHash, eventId)) {
       return NextResponse.json({ success: true, message: "Already processed" })
     }
@@ -678,6 +652,7 @@ export async function POST(request: Request) {
     let shouldRespond = false
     let azuraReplyCount = 0
     let reason = ""
+    let isThreadContinuation = false
     
     if (isMention && isFixThisRequest && hasParent) {
       shouldRespond = true
@@ -706,7 +681,44 @@ export async function POST(request: Request) {
         }
         shouldRespond = true
         reason = "thread_continuation"
+        isThreadContinuation = true
       }
+    }
+    
+    // CHECK NEYNAR SCORE (must be 0.8 or above)
+    // Only for NEW interactions (mentions/commands), NOT for thread continuations
+    if (!isThreadContinuation) {
+      const scoreCheck = await checkNeynarScore(authorFid, apiKey)
+      if (!scoreCheck.allowed) {
+        console.log("[WEBHOOK] User blocked due to low Neynar score:", {
+          username: author.username,
+          fid: authorFid,
+          score: scoreCheck.score,
+          reason: "new_interaction"
+        })
+        
+        markAsProcessed(castHash, eventId)
+        return NextResponse.json({ 
+          success: true, 
+          message: "User Neynar score below threshold for new interactions",
+          author: author.username,
+          fid: authorFid,
+          score: scoreCheck.score,
+          required: 0.8
+        })
+      }
+      
+      console.log("[WEBHOOK] User passed Neynar score check:", {
+        username: author.username,
+        fid: authorFid,
+        score: scoreCheck.score,
+        interactionType: reason
+      })
+    } else {
+      console.log("[WEBHOOK] Thread continuation - bypassing score check:", {
+        username: author.username,
+        fid: authorFid
+      })
     }
     
     if (!shouldRespond) {
