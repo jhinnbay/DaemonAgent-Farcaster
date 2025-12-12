@@ -664,7 +664,12 @@ export async function POST(request: Request) {
     
     // CHECK IF SHOULD RESPOND
     // Check both text mentions and structured mentions array
-    const textMention = castText.toLowerCase().includes("@daemonagent") || castText.toLowerCase().includes("@azura")
+    const lowerText = castText.toLowerCase()
+    // Check for @mentions or mentions at word boundaries
+    const textMention = lowerText.includes("@daemonagent") || 
+                       lowerText.includes("@azura") ||
+                       /\bdaemonagent\b/.test(lowerText) ||
+                       /\bazura\b/.test(lowerText)
     const structuredMention = cast.mentioned_profiles?.some((profile: any) => {
       const username = profile.username?.toLowerCase() || ""
       return username === "daemonagent" || username === "azura" || username === "azuras.eth"
@@ -673,7 +678,14 @@ export async function POST(request: Request) {
     
     const isDaemonRequest = castText.toLowerCase().includes("show me my daemon")
     const isFixThisRequest = castText.toLowerCase().includes("fix this")
-    const hasParent = cast.parent_hash && cast.parent_hash.length > 0
+    // Check multiple possible parent fields (Neynar webhook structure may vary)
+    // For replies, parent_hash should be present. Also check parent object structure.
+    const parentHash = cast.parent_hash || 
+                       cast.parent?.hash || 
+                       (typeof cast.parent === 'string' ? cast.parent : null) ||
+                       cast.parent_author?.hash ||
+                       null
+    const hasParent = parentHash && typeof parentHash === 'string' && parentHash.length > 0
     
     console.log("[WEBHOOK] Mention check:", {
       textMention,
@@ -682,6 +694,10 @@ export async function POST(request: Request) {
       isDaemonRequest,
       isFixThisRequest,
       hasParent,
+      parentHash,
+      parentHashType: typeof parentHash,
+      castParentHash: cast.parent_hash,
+      castParent: cast.parent,
       mentionedProfiles: cast.mentioned_profiles?.map((p: any) => p.username)
     })
     
@@ -693,6 +709,24 @@ export async function POST(request: Request) {
     if (isMention && isFixThisRequest && hasParent) {
       shouldRespond = true
       reason = "fix_this"
+      console.log("[WEBHOOK] ✅ Fix this request detected:", {
+        commander: author.username,
+        commanderFid: authorFid,
+        parentHash,
+        commanderCastText: castText,
+        commanderCastHash: castHash
+      })
+    } else if (isMention && isFixThisRequest && !hasParent) {
+      console.log("[WEBHOOK] ⚠️ Fix this request detected but no parent found - Commander must REPLY to the cast they want fixed:", {
+        commander: author.username,
+        castText,
+        parentHash,
+        parentHashType: typeof parentHash,
+        castKeys: Object.keys(cast),
+        castParent: cast.parent,
+        castParentHash: cast.parent_hash
+      })
+      // Don't respond if no parent - "fix this" requires a reply to the target cast
     } else if (isMention && isDaemonRequest) {
       shouldRespond = true
       reason = "daemon_analysis"
@@ -701,7 +735,8 @@ export async function POST(request: Request) {
       reason = "mention"
     } else if (hasParent) {
       // Check thread continuation and count Azura's replies
-      const threadCheck = await checkThreadForContinuation(cast.parent_hash, castHash, apiKey)
+      const threadParentHash = cast.parent_hash || cast.parent?.hash || cast.parent
+      const threadCheck = await checkThreadForContinuation(threadParentHash, castHash, apiKey)
       azuraReplyCount = threadCheck.azuraReplyCount
       
       if (threadCheck.shouldContinue) {
@@ -774,7 +809,9 @@ export async function POST(request: Request) {
     // GENERATE RESPONSE
     let response: string
     if (reason === "fix_this") {
-      response = await generateFixThisResponse(cast.parent_hash, apiKey)
+      const fixParentHash = cast.parent_hash || cast.parent?.hash || cast.parent
+      console.log("[WEBHOOK] Generating fix this response for parent:", fixParentHash)
+      response = await generateFixThisResponse(fixParentHash, apiKey)
     } else if (reason === "daemon_analysis") {
       response = await generateDaemonResponse(author.fid, author.username)
     } else {
