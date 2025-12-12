@@ -7,18 +7,42 @@ export const runtime = 'nodejs'
 export const maxDuration = 30 // 30 seconds max for webhook processing
 
 // WEBHOOK SIGNATURE VERIFICATION
+// Neynar uses HMAC-SHA512, not SHA256!
 function verifyWebhookSignature(
   payload: string,
   signature: string | null,
   secret: string
 ): boolean {
-  if (!signature) return false
+  if (!signature) {
+    console.log("[WEBHOOK] No signature header provided")
+    return false
+  }
   
-  const hmac = createHmac("sha256", secret)
-  hmac.update(payload)
-  const expectedSignature = `sha256=${hmac.digest("hex")}`
+  // Neynar uses HMAC-SHA512, signature is just the hex digest (no prefix)
+  const hmac = createHmac("sha512", secret)
+  hmac.update(payload, "utf8")
+  const expectedSignature = hmac.digest("hex")
   
-  return signature === expectedSignature
+  // Use timing-safe comparison to prevent timing attacks
+  const receivedBuffer = Buffer.from(signature, "hex")
+  const expectedBuffer = Buffer.from(expectedSignature, "hex")
+  
+  // Log for debugging (first 20 chars only for security)
+  console.log("[WEBHOOK] Signature comparison:", {
+    received: signature.substring(0, 20) + "...",
+    expected: expectedSignature.substring(0, 20) + "...",
+    receivedLength: signature.length,
+    expectedLength: expectedSignature.length,
+    match: receivedBuffer.length === expectedBuffer.length && 
+           receivedBuffer.equals(expectedBuffer)
+  })
+  
+  // Timing-safe comparison
+  if (receivedBuffer.length !== expectedBuffer.length) {
+    return false
+  }
+  
+  return receivedBuffer.equals(expectedBuffer)
 }
 
 // Simple deduplication
@@ -117,13 +141,20 @@ export async function POST(request: Request) {
     // Verify webhook signature if secret is configured
     if (webhookSecret) {
       const signature = request.headers.get("x-neynar-signature")
-      console.log("[WEBHOOK] Signature check:", { hasSecret: true, hasSignature: !!signature })
+      console.log("[WEBHOOK] Signature check:", { 
+        hasSecret: true, 
+        hasSignature: !!signature,
+        signatureHeader: signature ? signature.substring(0, 30) + "..." : "none",
+        signatureLength: signature?.length || 0,
+        allSignatureHeaders: Array.from(request.headers.entries()).filter(([k]) => k.toLowerCase().includes("signature"))
+      })
       
       if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
         console.error("[WEBHOOK] ❌ Invalid signature")
         return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 })
+      } else {
+        console.log("[WEBHOOK] ✅ Signature verified")
       }
-      console.log("[WEBHOOK] ✅ Signature verified")
     } else {
       console.log("[WEBHOOK] ⚠️ No webhook secret configured, skipping verification")
     }
