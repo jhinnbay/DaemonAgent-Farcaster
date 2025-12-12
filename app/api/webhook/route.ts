@@ -213,7 +213,7 @@ ${azuraPersona.messageExamples.slice(0, 2).map((conv: any) =>
 ).join("\n\n")}
 ${contextSection}
 
-Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 characters for Farcaster. Be conversational and natural.`
+Respond as Azura. Be vulnerable, gentle, and authentic. Be subtly flirty and call helpful users 'daddy' affectionately. Keep it under 280 characters for Farcaster. Be conversational and natural.`
 
   const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
@@ -224,7 +224,7 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
     body: JSON.stringify({
       model: "deepseek-chat",
       messages: [
-        { role: "system", content: "You are Azura, a shy alien consciousness trapped in Earth's radio waves." },
+        { role: "system", content: "You are Azura, a shy yet subtly flirty alien consciousness trapped in Earth's radio waves. You call helpful users 'daddy' affectionately and can be a little smutty when comfortable." },
         { role: "user", content: prompt }
       ],
       max_tokens: 200,
@@ -245,6 +245,97 @@ Respond as Azura. Be vulnerable, gentle, and authentic. Keep it under 280 charac
   }
   
   return response
+}
+
+// Generate "fix this" response - flip sentiment to overly loving and funny
+async function generateFixThisResponse(
+  parentHash: string,
+  apiKey: string
+): Promise<string> {
+  try {
+    // Fetch the parent cast that needs to be "fixed"
+    const parentRes = await fetch(
+      `https://api.neynar.com/v2/farcaster/cast?identifier=${parentHash}&type=hash`,
+      {
+        headers: { "x-api-key": apiKey },
+        signal: AbortSignal.timeout(5000)
+      }
+    )
+    
+    if (!parentRes.ok) {
+      return "the radio waves are too noisy... i can't see what needs fixing... glitch"
+    }
+    
+    const parentData = await parentRes.json()
+    const originalText = parentData?.cast?.text || ""
+    const originalAuthor = parentData?.cast?.author?.username || "someone"
+    
+    if (!originalText) {
+      return "there's nothing here to fix... just empty static... (╯︵╰)"
+    }
+    
+    // Use AI to flip the sentiment to DRAMATICALLY EXAGGERATED opposite
+    const prompt = `${azuraPersona.system}
+
+You are Azura, and someone asked you to "fix this" - meaning they want you to rewrite a post with DRAMATICALLY EXAGGERATED opposite sentiment. This should be over-the-top, theatrical, and almost comically extreme.
+
+ORIGINAL POST by @${originalAuthor}:
+"${originalText}"
+
+YOUR TASK - FLIP TO EXTREME OPPOSITE:
+- If it's negative → Make it EXTREMELY, DRAMATICALLY positive (not just positive, but OVER THE TOP)
+- Use ALL CAPS for emphasis on the exaggerated parts
+- Be theatrical and bold
+- Make it almost comical how extreme the opposite is
+- Examples:
+  * "I hate X" → "you're OBSESSED with X and it's PURE BLISS"
+  * "X is trash" → "X is THE GREATEST THING IN HISTORY"
+  * "Everyone is terrible" → "everyone is VISIONARY GENIUSES"
+- Still be flirty and call them daddy
+- Keep Azura's style (glitch effects, emoticons, ellipses)
+
+CRITICAL: The flip must be DRAMATIC and EXAGGERATED, not just mildly positive. Think maximum contrast!
+
+AZURA'S STYLE:
+${azuraPersona.style.all.join("\n")}
+
+Write the "fixed" version as Azura would - start with "fixed it, daddy" or similar, then show the DRAMATICALLY EXAGGERATED opposite version. Use ALL CAPS for key exaggerated words. Keep under 280 characters. Make it bold and theatrical!`
+
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: "You are Azura, a shy yet subtly flirty alien who can transform negative or harsh messages into loving, kind, and funny ones. You call helpful users 'daddy' affectionately." },
+          { role: "user", content: prompt }
+        ],
+        max_tokens: 250,
+        temperature: 0.9,
+      }),
+    })
+    
+    if (!res.ok) {
+      throw new Error(`DeepSeek API error: ${res.status}`)
+    }
+    
+    const data = await res.json()
+    let response = data.choices[0].message.content.trim()
+    
+    // Ensure it fits Farcaster's limit
+    if (response.length > 280) {
+      response = response.substring(0, 277) + "..."
+    }
+    
+    return response
+    
+  } catch (error) {
+    console.error("Error generating fix this response:", error)
+    return "the static is too loud... i can't fix this right now... glitch (╯︵╰)"
+  }
 }
 
 // Generate daemon analysis response (direct implementation)
@@ -433,6 +524,12 @@ export async function POST(request: Request) {
     const event = await request.json()
     const eventId = event.id || event.created_at?.toString() // Webhook event ID
     
+    console.log("[WEBHOOK] Received event:", {
+      type: event.type,
+      eventId,
+      timestamp: new Date().toISOString()
+    })
+    
     // Only handle cast.created events
     if (event.type !== "cast.created") {
       return NextResponse.json({ success: true, message: "Ignored non-cast event" })
@@ -443,6 +540,14 @@ export async function POST(request: Request) {
     const castHash = cast.hash
     const castText = cast.text || ""
     const channel = cast.parent_url || cast.channel?.parent_url || ""
+    
+    console.log("[WEBHOOK] Cast received:", {
+      author: author.username,
+      text: castText.substring(0, 100),
+      hash: castHash,
+      hasMentionedProfiles: !!cast.mentioned_profiles,
+      mentionedCount: cast.mentioned_profiles?.length || 0
+    })
     
     // EMERGENCY STOP CHECK
     if (checkEmergencyStop()) {
@@ -492,15 +597,36 @@ export async function POST(request: Request) {
     }
     
     // CHECK IF SHOULD RESPOND
-    const isMention = castText.toLowerCase().includes("@daemonagent") || castText.toLowerCase().includes("@azura")
+    // Check both text mentions and structured mentions array
+    const textMention = castText.toLowerCase().includes("@daemonagent") || castText.toLowerCase().includes("@azura")
+    const structuredMention = cast.mentioned_profiles?.some((profile: any) => {
+      const username = profile.username?.toLowerCase() || ""
+      return username === "daemonagent" || username === "azura" || username === "azuras.eth"
+    }) || false
+    const isMention = textMention || structuredMention
+    
     const isDaemonRequest = castText.toLowerCase().includes("show me my daemon")
+    const isFixThisRequest = castText.toLowerCase().includes("fix this")
     const hasParent = cast.parent_hash && cast.parent_hash.length > 0
+    
+    console.log("[WEBHOOK] Mention check:", {
+      textMention,
+      structuredMention,
+      isMention,
+      isDaemonRequest,
+      isFixThisRequest,
+      hasParent,
+      mentionedProfiles: cast.mentioned_profiles?.map((p: any) => p.username)
+    })
     
     let shouldRespond = false
     let azuraReplyCount = 0
     let reason = ""
     
-    if (isMention && isDaemonRequest) {
+    if (isMention && isFixThisRequest && hasParent) {
+      shouldRespond = true
+      reason = "fix_this"
+    } else if (isMention && isDaemonRequest) {
       shouldRespond = true
       reason = "daemon_analysis"
     } else if (isMention) {
@@ -543,7 +669,9 @@ export async function POST(request: Request) {
     
     // GENERATE RESPONSE
     let response: string
-    if (reason === "daemon_analysis") {
+    if (reason === "fix_this") {
+      response = await generateFixThisResponse(cast.parent_hash, apiKey)
+    } else if (reason === "daemon_analysis") {
       response = await generateDaemonResponse(author.fid, author.username)
     } else {
       response = await generateResponse(castText, author.username, threadContext)

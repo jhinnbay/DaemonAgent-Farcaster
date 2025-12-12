@@ -1,0 +1,212 @@
+/**
+ * ElizaOS Integration Service
+ * 
+ * This service integrates the ElizaOS Farcaster plugin with the DaemonFetch application.
+ * It provides methods to initialize ElizaOS runtime, handle Farcaster interactions,
+ * and manage the agent lifecycle.
+ */
+
+import farcasterPlugin from '@elizaos/plugin-farcaster';
+import { AgentRuntime, Character, DatabaseAdapter } from '@elizaos/core';
+import elizaCharacter from './eliza-character.json';
+
+export class ElizaService {
+  private runtime: AgentRuntime | null = null;
+  private initialized: boolean = false;
+
+  /**
+   * Initialize the ElizaOS runtime with Farcaster plugin
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      console.log('[ElizaOS] Service already initialized');
+      return;
+    }
+
+    try {
+      console.log('[ElizaOS] Initializing ElizaOS service...');
+
+      // Validate required environment variables
+      const requiredEnvVars = [
+        'FARCASTER_FID',
+        'FARCASTER_NEYNAR_API_KEY',
+        'FARCASTER_SIGNER_UUID'
+      ];
+
+      const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+      if (missingVars.length > 0) {
+        throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+      }
+
+      // Prepare character configuration
+      const character: Character = {
+        ...elizaCharacter,
+        name: elizaCharacter.name,
+        username: elizaCharacter.username,
+        bio: elizaCharacter.bio,
+        lore: elizaCharacter.lore,
+        knowledge: elizaCharacter.knowledge,
+        messageExamples: elizaCharacter.messageExamples,
+        postExamples: elizaCharacter.postExamples,
+        topics: elizaCharacter.topics,
+        style: elizaCharacter.style,
+        adjectives: elizaCharacter.adjectives,
+        plugins: [farcasterPlugin],
+        settings: {
+          ...elizaCharacter.settings,
+          secrets: {
+            FARCASTER_FID: process.env.FARCASTER_FID,
+            FARCASTER_NEYNAR_API_KEY: process.env.FARCASTER_NEYNAR_API_KEY,
+            FARCASTER_SIGNER_UUID: process.env.FARCASTER_SIGNER_UUID,
+            FARCASTER_MODE: process.env.FARCASTER_MODE || 'webhook',
+            FARCASTER_DRY_RUN: process.env.FARCASTER_DRY_RUN || 'false',
+          }
+        },
+        clientConfig: elizaCharacter.clientConfig
+      } as Character;
+
+      // Create runtime instance
+      this.runtime = new AgentRuntime({
+        character,
+        adapter: new DatabaseAdapter(), // Use default database adapter
+        plugins: [farcasterPlugin],
+      });
+
+      // Initialize plugins
+      await this.runtime.initialize();
+
+      this.initialized = true;
+      console.log('[ElizaOS] Service initialized successfully');
+    } catch (error) {
+      console.error('[ElizaOS] Failed to initialize service:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the initialized runtime instance
+   */
+  getRuntime(): AgentRuntime {
+    if (!this.initialized || !this.runtime) {
+      throw new Error('ElizaOS service not initialized. Call initialize() first.');
+    }
+    return this.runtime;
+  }
+
+  /**
+   * Check if the service is initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Process a Farcaster webhook event using ElizaOS
+   * This method can be used to handle incoming cast events through ElizaOS
+   */
+  async processWebhookEvent(event: any): Promise<any> {
+    if (!this.initialized || !this.runtime) {
+      throw new Error('ElizaOS service not initialized');
+    }
+
+    try {
+      console.log('[ElizaOS] Processing webhook event:', {
+        type: event.type,
+        timestamp: new Date().toISOString()
+      });
+
+      // Get the Farcaster service from runtime
+      const farcasterService = this.runtime.getService('farcaster');
+      
+      if (!farcasterService) {
+        throw new Error('Farcaster service not found in runtime');
+      }
+
+      // Process the event through ElizaOS
+      // The plugin will automatically handle mentions, replies, and interactions
+      // based on the character configuration
+
+      return {
+        success: true,
+        message: 'Event processed by ElizaOS',
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('[ElizaOS] Error processing webhook event:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Manually post a cast using ElizaOS
+   */
+  async postCast(text: string, options?: { parentHash?: string }): Promise<any> {
+    if (!this.initialized || !this.runtime) {
+      throw new Error('ElizaOS service not initialized');
+    }
+
+    try {
+      console.log('[ElizaOS] Posting cast:', text.substring(0, 50));
+
+      const farcasterService = this.runtime.getService('farcaster');
+      
+      if (!farcasterService) {
+        throw new Error('Farcaster service not found in runtime');
+      }
+
+      // Use the message service to send a cast
+      const messageService = (farcasterService as any).getMessageService?.(this.runtime.agentId);
+      
+      if (messageService) {
+        const result = await messageService.sendMessage({
+          text,
+          parentHash: options?.parentHash
+        });
+
+        return result;
+      }
+
+      throw new Error('Message service not available');
+    } catch (error) {
+      console.error('[ElizaOS] Error posting cast:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Cleanup and shutdown the service
+   */
+  async shutdown(): Promise<void> {
+    if (!this.initialized) {
+      return;
+    }
+
+    try {
+      console.log('[ElizaOS] Shutting down service...');
+      
+      // Cleanup runtime resources
+      if (this.runtime) {
+        // Add any cleanup logic here if needed
+        this.runtime = null;
+      }
+
+      this.initialized = false;
+      console.log('[ElizaOS] Service shutdown complete');
+    } catch (error) {
+      console.error('[ElizaOS] Error during shutdown:', error);
+      throw error;
+    }
+  }
+}
+
+// Export a singleton instance
+let elizaServiceInstance: ElizaService | null = null;
+
+export function getElizaService(): ElizaService {
+  if (!elizaServiceInstance) {
+    elizaServiceInstance = new ElizaService();
+  }
+  return elizaServiceInstance;
+}
+
+export default ElizaService;

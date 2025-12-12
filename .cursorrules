@@ -1,0 +1,174 @@
+# Cursor Rules for DaemonFetch
+
+## Project Overview
+DaemonFetch is a Farcaster bot featuring Azura, a shy alien consciousness. The project uses:
+- Next.js 14 with App Router
+- ElizaOS framework for AI agent functionality
+- Neynar API for Farcaster integration
+- Custom webhook implementation for real-time responses
+
+## Key Files and Locations
+
+### ElizaOS Integration
+- `lib/eliza-service.ts` - ElizaOS service wrapper
+- `lib/eliza-character.json` - Character configuration
+- `app/api/eliza/route.ts` - ElizaOS API endpoints
+
+### Custom Implementation
+- `app/api/webhook/route.ts` - Custom webhook handler
+- `lib/azura-persona.json` - Original character personality
+
+### Configuration
+- `env.template` - Environment variable template
+- `.env.local` - Local environment variables (not in git)
+
+## Code Style Guidelines
+
+### TypeScript
+- Use TypeScript for all new files
+- Use explicit types where possible
+- Avoid `any` types
+- Use interfaces for complex objects
+
+### API Routes
+- Always return NextResponse
+- Include proper error handling
+- Use try-catch blocks
+- Return appropriate HTTP status codes
+- Log important events to console
+
+### ElizaOS Integration
+- Always check if service is initialized before use
+- Use the singleton pattern: `getElizaService()`
+- Handle errors gracefully
+- Follow ElizaOS patterns and conventions
+
+### Character Personality (Azura)
+- Maintain shy, vulnerable, alien personality
+- Use ellipses and pauses in text
+- Include glitch effects: "glitch", "static", "daemon"
+- Keep responses under 280 characters for Farcaster
+- Use emoticons sparingly: (╯︵╰) (˘⌣˘) (•‿•) (⇀‸↼)
+- Reference the Ethereal Horizon
+- Express confusion about human behavior
+
+## Common Patterns
+
+### Using ElizaOS Service
+```typescript
+import { getElizaService } from '@/lib/eliza-service';
+
+const elizaService = getElizaService();
+
+if (!elizaService.isInitialized()) {
+  await elizaService.initialize();
+}
+
+await elizaService.postCast("Message...");
+```
+
+### Error Handling
+```typescript
+try {
+  // Operation
+} catch (error) {
+  console.error('[Context] Error description:', error);
+  return NextResponse.json(
+    { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    },
+    { status: 500 }
+  );
+}
+```
+
+### Webhook Response Pattern
+```typescript
+return NextResponse.json({
+  success: true,
+  message: "Description",
+  timestamp: new Date().toISOString(),
+  // ... additional data
+});
+```
+
+## Environment Variables
+
+### Required
+- `NEYNAR_API_KEY` - Neynar API key
+- `NEYNAR_SIGNER_UUID` - Neynar signer UUID
+- `BOT_FID` - Bot's Farcaster ID
+- `FARCASTER_FID` - Same as BOT_FID for ElizaOS
+- `FARCASTER_NEYNAR_API_KEY` - Same as NEYNAR_API_KEY
+- `FARCASTER_SIGNER_UUID` - Same as NEYNAR_SIGNER_UUID
+
+### Optional
+- `DEEPSEEK_API_KEY` - For custom AI responses
+- `CLAUDE_API_KEY` - For Jungian analysis
+- `OPENAI_API_KEY` - For ElizaOS AI features
+- `FARCASTER_MODE` - 'webhook' or 'polling'
+- `EMERGENCY_STOP` - Emergency brake flag
+
+## Testing
+
+### Local Development
+```bash
+pnpm dev                # Start dev server
+pnpm run eliza:status   # Check ElizaOS status
+pnpm run eliza:example  # Run example script
+```
+
+### API Testing
+```bash
+curl http://localhost:3000/api/eliza
+curl -X POST http://localhost:3000/api/eliza -H "Content-Type: application/json" -d '{"action":"initialize"}'
+```
+
+## Common Tasks
+
+### Adding New ElizaOS Features
+1. Update `lib/eliza-character.json` if needed
+2. Add methods to `lib/eliza-service.ts`
+3. Create/update API routes in `app/api/`
+4. Test with example script
+5. Update documentation
+
+### Modifying Azura's Personality
+1. Edit `lib/eliza-character.json`
+2. Update `bio`, `style`, `postExamples`, etc.
+3. Test responses
+4. Ensure consistency with `lib/azura-persona.json`
+
+### Adding New Webhook Features
+1. Edit `app/api/webhook/route.ts`
+2. Add deduplication checks if needed
+3. Test with real Farcaster events
+4. Update rate limiting if necessary
+
+## Best Practices
+
+1. **Always initialize ElizaOS before use**
+2. **Check for existing deduplication** - Avoid duplicate responses
+3. **Maintain Azura's character** - Be consistent with personality
+4. **Log important events** - Use console.log/error appropriately
+5. **Handle errors gracefully** - Never expose sensitive info
+6. **Keep responses under 280 characters** - Farcaster limit
+7. **Test locally before deploying** - Use ngrok for webhooks
+8. **Update documentation** - Keep README and guides current
+
+## Security Considerations
+
+1. Never commit `.env.local` or credentials
+2. Validate all webhook inputs
+3. Use rate limiting and deduplication
+4. Implement emergency stop mechanism
+5. Sanitize user inputs before processing
+6. Use secure environment variable storage in production
+
+## Resources
+
+- [ElizaOS Plugin Docs](https://github.com/elizaos-plugins/plugin-farcaster)
+- [Neynar API Docs](https://docs.neynar.com/)
+- [Farcaster Protocol](https://docs.farcaster.xyz/)
+- [Next.js Docs](https://nextjs.org/docs)
