@@ -42,7 +42,7 @@ function wasRecentlyProcessed(castHash: string, eventId?: string): boolean {
   cleanupOldEntries()
   if (eventId && processedEvents.has(eventId)) return true
   const lastProcessed = processedCasts.get(castHash)
-  return lastProcessed && Date.now() - lastProcessed < DEDUP_WINDOW
+  return !!(lastProcessed && Date.now() - lastProcessed < DEDUP_WINDOW)
 }
 
 function isAlreadyProcessing(castHash: string): boolean {

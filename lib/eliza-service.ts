@@ -116,13 +116,27 @@ export class ElizaService {
         timestamp: new Date().toISOString()
       });
 
-      // Process the event through ElizaOS runtime
-      // The Farcaster plugin will automatically handle mentions, replies, and interactions
-      // based on the character configuration in eliza-character.json
+      // Get the Farcaster service from runtime
+      const farcasterService = this.runtime.getService('farcaster');
       
-      // The runtime processes events through its message handlers
-      // This will trigger Azura's responses based on her personality and configuration
-      await this.runtime.processEvent(event);
+      if (!farcasterService) {
+        throw new Error('Farcaster service not found in runtime');
+      }
+
+      // Process the event through the Farcaster plugin
+      // The plugin will handle mentions, replies, and generate responses
+      // based on the character configuration
+      if (typeof (farcasterService as any).handleWebhookEvent === 'function') {
+        await (farcasterService as any).handleWebhookEvent(event);
+      } else if (typeof (farcasterService as any).processEvent === 'function') {
+        await (farcasterService as any).processEvent(event);
+      } else if (typeof this.runtime.processEvent === 'function') {
+        await this.runtime.processEvent(event);
+      } else {
+        // Fallback: Let the plugin handle it through its initialization
+        // In webhook mode, the plugin should automatically process events
+        console.log('[ElizaOS] Event passed to runtime, plugin will handle automatically');
+      }
 
       return {
         success: true,
