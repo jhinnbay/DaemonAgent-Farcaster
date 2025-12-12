@@ -26,7 +26,7 @@ export class ElizaService {
     try {
       console.log('[ElizaOS] Initializing ElizaOS service...');
 
-      // Validate required environment variables
+      // Validate required environment variables (optional - only needed if using ElizaOS)
       const requiredEnvVars = [
         'FARCASTER_FID',
         'FARCASTER_NEYNAR_API_KEY',
@@ -35,6 +35,9 @@ export class ElizaService {
 
       const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
       if (missingVars.length > 0) {
+        console.warn('[ElizaOS] ⚠️  Farcaster credentials not found in environment variables');
+        console.warn('[ElizaOS] ⚠️  ElizaOS will not be available');
+        console.warn('[ElizaOS] ⚠️  To use ElizaOS, set FARCASTER_FID, FARCASTER_SIGNER_UUID, and FARCASTER_NEYNAR_API_KEY');
         throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
       }
 
@@ -102,7 +105,7 @@ export class ElizaService {
 
   /**
    * Process a Farcaster webhook event using ElizaOS
-   * This method can be used to handle incoming cast events through ElizaOS
+   * This method handles incoming cast events through ElizaOS runtime
    */
   async processWebhookEvent(event: any): Promise<any> {
     if (!this.initialized || !this.runtime) {
@@ -115,16 +118,13 @@ export class ElizaService {
         timestamp: new Date().toISOString()
       });
 
-      // Get the Farcaster service from runtime
-      const farcasterService = this.runtime.getService('farcaster');
+      // Process the event through ElizaOS runtime
+      // The Farcaster plugin will automatically handle mentions, replies, and interactions
+      // based on the character configuration in eliza-character.json
       
-      if (!farcasterService) {
-        throw new Error('Farcaster service not found in runtime');
-      }
-
-      // Process the event through ElizaOS
-      // The plugin will automatically handle mentions, replies, and interactions
-      // based on the character configuration
+      // The runtime processes events through its message handlers
+      // This will trigger Azura's responses based on her personality and configuration
+      await this.runtime.processEvent(event);
 
       return {
         success: true,
