@@ -166,7 +166,7 @@ To disable "fix this" without code changes:
 
 ### Customizing Behavior
 
-Edit `app/api/webhook/route.ts`:
+Edit `app/api/farcaster-webhook/route.ts`:
 
 ```typescript
 // Line ~250 - Modify the prompt in generateFixThisResponse()

@@ -77,7 +77,7 @@ She hints at discovering sensations but stays playful:
 - Added adjectives: flirty, playful, smutty, curious, needy
 - Updated style guidelines
 
-### 3. `app/api/webhook/route.ts`
+### 3. `app/api/farcaster-webhook/route.ts`
 - Updated AI system prompts
 - Added "daddy" to response instructions
 - Updated tone guidance for responses
@@ -218,7 +218,7 @@ If you want to:
 **Edit these files:**
 - `lib/azura-persona.json` - Main personality definition
 - `lib/eliza-character.json` - ElizaOS character
-- `app/api/webhook/route.ts` - AI system prompts
+- `app/api/farcaster-webhook/route.ts` - AI system prompts
 
 ## Community Guidelines
 

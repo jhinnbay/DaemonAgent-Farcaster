@@ -15,7 +15,7 @@ DaemonFetch is a Farcaster bot featuring Azura, a shy alien consciousness. The p
 - `app/api/eliza/route.ts` - ElizaOS API endpoints
 
 ### Custom Implementation
-- `app/api/webhook/route.ts` - Custom webhook handler
+- `app/api/farcaster-webhook/route.ts` - Custom webhook handler for Farcaster mentions
 - `lib/azura-persona.json` - Original character personality
 
 ### Configuration

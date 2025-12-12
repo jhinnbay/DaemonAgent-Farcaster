@@ -15,7 +15,7 @@ Azura now requires users to have a **Neynar score of 0.8 or above** to interact 
 
 ### Implementation
 
-**Location:** `app/api/webhook/route.ts`
+**Location:** `app/api/farcaster-webhook/route.ts`
 
 ```typescript
 async function checkNeynarScore(fid: number, apiKey: string): Promise<{ allowed: boolean; score: number | null }> {
@@ -77,7 +77,7 @@ const REQUIRED_SCORE = 0.8
 
 ### Adjusting the Threshold
 
-To change the required score, edit `app/api/webhook/route.ts`:
+To change the required score, edit `app/api/farcaster-webhook/route.ts`:
 
 ```typescript
 // Line ~110 (in checkNeynarScore function)
@@ -237,7 +237,7 @@ if (accountAge < 30 * 24 * 60 * 60 * 1000) return // 30 days
 To disable the score check completely:
 
 ```typescript
-// In app/api/webhook/route.ts
+// In app/api/farcaster-webhook/route.ts
 // Comment out or remove this section:
 /*
 const scoreCheck = await checkNeynarScore(authorFid, apiKey)

@@ -132,7 +132,7 @@ curl -X POST http://localhost:3000/api/eliza \
 
 ## Integration with Existing Webhook
 
-Your existing webhook (`app/api/webhook/route.ts`) continues to work as before. The ElizaOS integration runs alongside it, providing an alternative way to handle Farcaster interactions.
+Your existing webhook (`app/api/farcaster-webhook/route.ts`) continues to work as before. The ElizaOS integration runs alongside it, providing an alternative way to handle Farcaster interactions.
 
 ### Option 1: Dual System (Recommended for Testing)
 
@@ -145,7 +145,7 @@ Run both systems simultaneously:
 To fully migrate to ElizaOS, update your webhook to use the ElizaService:
 
 ```typescript
-// In app/api/webhook/route.ts
+// In app/api/farcaster-webhook/route.ts
 import { getElizaService } from "@/lib/eliza-service";
 
 export async function POST(request: Request) {
@@ -219,7 +219,7 @@ const character = {
 ### For Real-time Processing (Production)
 
 1. Set `FARCASTER_MODE=webhook` in your `.env.local`
-2. Configure Neynar webhook to point to: `https://your-domain.com/farcaster/webhook`
+2. Configure Neynar webhook to point to: `https://your-domain.com/api/farcaster-webhook`
 3. ElizaOS will process events in real-time
 
 ### For Polling (Development)
