@@ -1,5 +1,22 @@
 import { NextResponse } from "next/server"
 import azuraPersona from "@/lib/azura-persona.json"
+import { createHmac } from "crypto"
+
+// WEBHOOK SIGNATURE VERIFICATION
+function verifyWebhookSignature(
+  payload: string,
+  signature: string | null,
+  secret: string
+): boolean {
+  if (!signature) return false
+  
+  // Neynar sends signature as: sha256=<hash>
+  const hmac = createHmac("sha256", secret)
+  hmac.update(payload)
+  const expectedSignature = `sha256=${hmac.digest("hex")}`
+  
+  return signature === expectedSignature
+}
 
 // MULTI-LAYER DEDUPLICATION + FAIL-SAFE
 // Layer 1: Event ID tracking (webhooks may send duplicate events)
@@ -546,12 +563,31 @@ export async function POST(request: Request) {
   try {
     const apiKey = process.env.NEYNAR_API_KEY
     const signerUuid = process.env.NEYNAR_SIGNER_UUID
+    const webhookSecret = process.env.NEYNAR_WEBHOOK_SECRET
     
     if (!apiKey || !signerUuid) {
       return NextResponse.json({ error: "Missing API credentials" }, { status: 500 })
     }
     
-    const event = await request.json()
+    // Get the raw body for signature verification
+    const rawBody = await request.text()
+    
+    // Verify webhook signature if secret is configured
+    if (webhookSecret) {
+      const signature = request.headers.get("x-neynar-signature")
+      
+      if (!verifyWebhookSignature(rawBody, signature, webhookSecret)) {
+        console.error("[WEBHOOK] Invalid signature - possible unauthorized request")
+        return NextResponse.json(
+          { error: "Invalid webhook signature" },
+          { status: 401 }
+        )
+      }
+      
+      console.log("[WEBHOOK] ✅ Signature verified")
+    }
+    
+    const event = JSON.parse(rawBody)
     const eventId = event.id || event.created_at?.toString() // Webhook event ID
     
     console.log("[WEBHOOK] Received event:", {
