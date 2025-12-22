@@ -584,7 +584,7 @@ export default function Home() {
               letterSpacing: '0.5px'
             }}
           >
-            Daemon collection carries its own vision within it, roughly summarized AS: oneiric-nightmares, chimerical dysmorphia, & A PRIMITIVE altered state wrapping SAFETY in disquieting oblivion.
+            Roughly summarized as: an oneiric-nightmare, aura dysmorphia, the daemon collection carries it's own vision of an altered reality.
           </p>
           
           {/* Image Grid - Four images in a grid */}
