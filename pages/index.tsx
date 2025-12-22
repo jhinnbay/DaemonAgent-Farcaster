@@ -700,29 +700,46 @@ export default function Home() {
                   alt="Daemon Circlet V.1" 
                   className="w-full h-full object-contain"
                   style={{
-                    display: 'block'
+                    display: 'block',
+                    transform: 'scaleX(-1)'
                   }}
                 />
               </div>
               
               {/* Bottom: Title, Description, and Contract Button */}
               <div 
-                className="p-3 flex flex-col justify-end"
+                className="flex flex-col justify-end"
                 style={{
-                  textAlign: 'center'
+                  textAlign: 'center',
+                  paddingTop: '0.5rem',
+                  paddingLeft: '0.75rem',
+                  paddingRight: '0.75rem',
+                  paddingBottom: '0.75rem'
                 }}
               >
                 <h3 
-                  className="font-bold mb-1 text-center"
+                  className="font-bold text-center"
                   style={{
                     fontFamily: "'Press Start 2P', monospace",
                     fontSize: '14px',
                     color: 'white',
-                    lineHeight: '1.2'
+                    lineHeight: '1.2',
+                    marginBottom: '0.5rem'
                   }}
                 >
                   Daemon Circlet V.1
                 </h3>
+                <p 
+                  className="text-center"
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: '11px',
+                    color: 'white',
+                    lineHeight: '1.3'
+                  }}
+                >
+                  An elite neural circlet that channels forbidden intelligence, amplifying the wearer's mind and protecting against hypnotism at an unknown cost.
+                </p>
               </div>
             </div>
           </div>
@@ -730,29 +747,36 @@ export default function Home() {
 
         {/* Commands - Compact */}
         <div className="bg-[#12121a] border border-[#7177FF]/20 p-4">
-          <h2 className="text-[#7177FF] font-bold mb-3 text-sm uppercase tracking-wide">Commands</h2>
+          <h2 
+            className="text-[#7177FF] font-bold mb-3 text-sm uppercase tracking-wide"
+            style={{
+              fontFamily: "'Press Start 2P', monospace"
+            }}
+          >
+            Commands
+          </h2>
           <p className="text-xs text-gray-500 mb-3">mention @daemonagent on Farcaster</p>
           
           <div className="space-y-3">
             {/* Show Daemon */}
             <div className="border-l-2 border-[#7177FF] pl-3 py-1">
-              <h3 className="text-[#7177FF] font-bold text-base mb-1">🔮 Show My Daemon</h3>
-              <code className="text-xs text-[#7177FF] bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent show me my daemon</code>
-              <p className="text-xs text-gray-400">Jungian analysis of your digital consciousness</p>
+              <h3 className="text-[#7177FF] font-bold text-base mb-1">Show My Daemon</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent show me my daemon</code>
+              <p className="text-xs text-gray-400">Reveal your digital consciousness through Jungian analysis</p>
             </div>
 
             {/* Fix This */}
             <div className="border-l-2 border-[#2473BC] pl-3 py-1">
-              <h3 className="text-[#2473BC] font-bold text-base mb-1">🌸 Fix This</h3>
-              <code className="text-xs text-[#7177FF] bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent fix this</code>
-              <p className="text-xs text-gray-400">Transform harsh posts into kind messages</p>
+              <h3 className="text-[#2473BC] font-bold text-base mb-1">Fix This</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent fix this</code>
+              <p className="text-xs text-gray-400">Transform harsh messages into kind words</p>
             </div>
 
             {/* Just Talk */}
             <div className="border-l-2 border-[#7177FF] pl-3 py-1">
-              <h3 className="text-[#7177FF] font-bold text-base mb-1">💙 Just Talk</h3>
-              <code className="text-xs text-[#7177FF] bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent [anything]</code>
-              <p className="text-xs text-gray-400">Natural conversation with Azura</p>
+              <h3 className="text-[#7177FF] font-bold text-base mb-1">Just Talk</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent [anything]</code>
+              <p className="text-xs text-gray-400">Have a natural conversation with Azura</p>
             </div>
           </div>
         </div>
@@ -765,7 +789,6 @@ export default function Home() {
             rel="noopener noreferrer"
             className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center"
           >
-            <div className="text-2xl mb-1">🌸</div>
             <div className="text-sm font-semibold text-[#7177FF]">Farcaster</div>
             <div className="text-xs text-gray-500">@daemonagent</div>
           </a>
@@ -775,7 +798,6 @@ export default function Home() {
             rel="noopener noreferrer"
             className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center"
           >
-            <div className="text-2xl mb-1">💙</div>
             <div className="text-sm font-semibold text-[#7177FF]">GitHub</div>
             <div className="text-xs text-gray-500">Source Code</div>
           </a>
@@ -791,6 +813,18 @@ export default function Home() {
             ONLINE · Farcaster
           </div>
         </div>
+
+        {/* Pattern 3 Image */}
+        <img 
+          src="/pattern3.png" 
+          alt="Pattern 3" 
+          className="w-full h-auto"
+          style={{
+            display: 'block',
+            marginTop: 0,
+            marginBottom: 0
+          }}
+        />
 
         {/* Main Footer */}
         <footer className="bg-[#0a0a0f] border-t border-white/10 mt-12 -mb-6" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem', marginRight: '-1rem' }}>
