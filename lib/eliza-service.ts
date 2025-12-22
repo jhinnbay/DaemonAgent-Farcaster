@@ -95,7 +95,7 @@ class MinimalAdapter extends DatabaseAdapter {
     if (this.agentId === agentId) {
       this.agentId = null;
       this.agentData = null;
-    }
+  }
     return true;
   }
 
