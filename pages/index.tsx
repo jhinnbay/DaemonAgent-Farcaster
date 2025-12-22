@@ -709,13 +709,13 @@ export default function Home() {
               <div 
                 className="p-3 flex flex-col justify-end"
                 style={{
-                  textAlign: 'left'
+                  textAlign: 'center'
                 }}
               >
                 <h3 
-                  className="font-bold mb-1"
+                  className="font-bold mb-1 text-center"
                   style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontFamily: "'Press Start 2P', monospace",
                     fontSize: '14px',
                     color: 'white',
                     lineHeight: '1.2'
@@ -723,55 +723,6 @@ export default function Home() {
                 >
                   Daemon Circlet V.1
                 </h3>
-                <div className="flex items-center justify-between gap-3">
-                  <p 
-                    className="flex-1"
-                    style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: '11px',
-                      color: 'white',
-                      lineHeight: '1.3'
-                    }}
-                  >
-                    An elite neural circlet that channels forbidden intelligence, amplifying the wearer's mind and protecting against hypnotism at an unknown cost.
-                  </p>
-                  {/* Buy Now Button */}
-                  <button
-                    onClick={() => setShowContract(true)}
-                    className="relative flex items-center justify-center flex-shrink-0 cursor-pointer"
-                    style={{
-                      width: '123.7586669921875px',
-                      height: '47px',
-                      borderRadius: '188.89697265625px',
-                      background: 'linear-gradient(135deg, rgba(221, 43, 46, 1) 0%, rgba(155, 24, 26, 1) 31.77%, rgba(239, 47, 127, 0.98) 68.23%, rgba(93, 9, 37, 1) 100%)',
-                      padding: '1.1379334926605225px',
-                      border: 'none',
-                      outline: 'none'
-                    }}
-                  >
-                    <div
-                      className="w-full h-full flex items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor: 'rgba(57, 6, 6, 0.78)',
-                        borderRadius: '188.89697265625px',
-                        paddingLeft: '11.379335403442383px',
-                        paddingTop: '8.5px',
-                        paddingRight: '11.379335403442383px',
-                        paddingBottom: '8.5px'
-                      }}
-                    >
-                      <span
-                        className="font-light"
-                        style={{
-                          fontSize: '14px',
-                          color: 'rgba(214, 29, 29, 1)'
-                        }}
-                      >
-                        BUY NOW
-                      </span>
-                    </div>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
