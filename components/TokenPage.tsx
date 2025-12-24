@@ -46,7 +46,7 @@ export default function TokenPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
+      <div className="grid grid-cols-2 gap-3 mb-4">
         <a
           href={`https://basescan.org/token/${DAEMON_CONTRACT}`}
           target="_blank"
@@ -84,6 +84,19 @@ export default function TokenPage() {
           </svg>
           <span className="text-[#7FFF5B] text-xs uppercase">Chart</span>
         </a>
+      </div>
+
+      {/* Pattern Image */}
+      <div className="w-full mb-8">
+        <img 
+          src="/pattern2.png" 
+          alt="Pattern" 
+          className="w-full h-auto"
+          style={{
+            borderRadius: '12px 8px 16px 10px',
+            opacity: 0.8
+          }}
+        />
       </div>
 
     </div>
