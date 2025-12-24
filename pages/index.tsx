@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { sdk } from '@farcaster/miniapp-sdk'
 import Head from 'next/head'
 import MintModal from '@/components/MintModal'
+import Navbar from '@/components/Navbar'
+import TokenPage from '@/components/TokenPage'
+import ProfilePage from '@/components/ProfilePage'
 
 // 💝 Configure your tip address here
 const TIP_ADDRESS = '0xE376641E65a47a8104bE75D8E4E18e68aaC899aB' // ETH Base address
@@ -37,6 +40,7 @@ export default function Home() {
   const [showContract, setShowContract] = useState(false)
   const [showMintModal, setShowMintModal] = useState(false)
   const [email, setEmail] = useState('')
+  const [currentPage, setCurrentPage] = useState<'profile' | 'daemon' | 'token'>('daemon')
   const [emailSubmitting, setEmailSubmitting] = useState(false)
   const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -390,9 +394,22 @@ export default function Home() {
             linear-gradient(90deg, rgba(236, 72, 153, 0.05) 1px, transparent 1px)
           `,
           backgroundSize: '40px 40px, 40px 40px, 20px 20px, 20px 20px',
-          backgroundPosition: '0 0, 0 0, 0 0, 0 0'
+          backgroundPosition: '0 0, 0 0, 0 0, 0 0',
+          paddingBottom: '120px' /* Space for fixed navbar */
         }}
       >
+      {/* Token Page */}
+      {currentPage === 'token' && (
+        <TokenPage />
+      )}
+
+      {/* Profile Page */}
+      {currentPage === 'profile' && (
+        <ProfilePage userProfile={userProfile} />
+      )}
+
+      {/* Main DAEMON Page */}
+      {currentPage === 'daemon' && (
       <div className="w-full px-4 py-6">
         {/* User Avatar - Top Right */}
         {userProfile?.pfpUrl && (
@@ -561,12 +578,93 @@ export default function Home() {
               marginBottom: 0
             }}
           />
+        </div>
           
+        {/* Commands - Compact */}
+        <div className="bg-[#12121a] border border-[#7177FF]/20 p-4 mt-10 w-full">
+          <h2 
+            className="text-[#7177FF] font-bold mb-3 text-sm uppercase tracking-wide"
+            style={{
+              fontFamily: "'Press Start 2P', monospace"
+            }}
+          >
+            Commands
+          </h2>
+          <p className="text-xs text-gray-500 mb-3">mention @daemonagent on Farcaster</p>
+          
+          <div className="space-y-3 w-full">
+            {/* Show Daemon */}
+            <div className="border-l-2 border-[#7177FF] pl-3 py-1 w-full">
+              <h3 className="text-[#7177FF] font-bold text-base mb-1">Show My Daemon</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1 break-words w-full">@daemonagent show me my daemon</code>
+              <p className="text-xs text-gray-400">Reveal your digital consciousness through Jungian analysis</p>
+            </div>
+
+            {/* Fix This */}
+            <div className="border-l-2 border-[#2473BC] pl-3 py-1 w-full">
+              <h3 className="text-[#2473BC] font-bold text-base mb-1">Fix This</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1 break-words w-full">@daemonagent fix this</code>
+              <p className="text-xs text-gray-400">Transform harsh messages into kind words</p>
+            </div>
+
+            {/* Just Talk */}
+            <div className="border-l-2 border-[#7177FF] pl-3 py-1 w-full">
+              <h3 className="text-[#7177FF] font-bold text-base mb-1">Just Talk</h3>
+              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1 break-words w-full">@daemonagent [anything]</code>
+              <p className="text-xs text-gray-400">Have a natural conversation with Azura</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Connect Links - Compact */}
+        <div className="grid grid-cols-2 gap-2 mt-2 w-full">
+          <a 
+            href="https://warpcast.com/daemonagent" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center w-full"
+          >
+            <div className="text-sm font-semibold text-[#7177FF]">Farcaster</div>
+            <div className="text-xs text-gray-500">@daemonagent</div>
+          </a>
+          <a 
+            href="https://github.com/jhinnbay/DaemonAgent-Farcaster" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center w-full"
+          >
+            <div className="text-sm font-semibold text-[#7177FF]">GitHub</div>
+            <div className="text-xs text-gray-500">Source Code</div>
+          </a>
+        </div>
+
+        {/* Footer - Minimal */}
+        <div className="text-center space-y-2 py-4">
+          <p className="text-gray-400 text-sm italic transition-opacity duration-500">
+            {STATUS_MESSAGES[statusMessageIndex]}
+          </p>
+          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+            <span className="w-2 h-2 bg-[#2473BC] rounded-full animate-pulse" />
+            ONLINE · Farcaster
+          </div>
+        </div>
+        
+        {/* Pattern 3 Image */}
+          <img 
+            src="/pattern3.png" 
+            alt="Pattern 3" 
+            className="w-full h-auto"
+            style={{
+              display: 'block',
+              marginTop: '40px',
+              marginBottom: '40px'
+            }}
+          />
+
           {/* Daemon Collection Heading */}
           <h2 
             className="w-full text-white text-2xl font-bold mb-4 text-center" 
             style={{ 
-              marginTop: '40px',
               fontFamily: "'Press Start 2P', monospace",
               fontSize: '16px'
             }}
@@ -670,154 +768,11 @@ export default function Home() {
               </div>
             </button>
           </div>
-          
-          {/* Scalar Headset Section */}
-          <div style={{ marginBottom: '40px' }}>
-            {/* Pattern 2 Image */}
-            <img 
-              src="/pattern2.png" 
-              alt="Pattern 2" 
-              className="w-full h-auto"
-              style={{
-                display: 'block',
-                marginTop: '40px',
-                marginBottom: 0
-              }}
-            />
-            
-            {/* Product Display */}
-            <div 
-              className="w-full mb-4 flex flex-col mt-4"
-              style={{
-                aspectRatio: '1 / 1',
-                maxWidth: '100%'
-              }}
-            >
-              {/* Top: Item Image */}
-              <div className="flex-1 flex items-center justify-center overflow-hidden">
-                <img 
-                  src="/item1.png" 
-                  alt="Daemon Circlet V.1" 
-                  className="w-full h-full object-contain"
-                  style={{
-                    display: 'block',
-                    transform: 'scaleX(-1)'
-                  }}
-                />
-              </div>
-              
-              {/* Bottom: Title, Description, and Contract Button */}
-              <div 
-                className="flex flex-col justify-end"
-                style={{
-                  textAlign: 'center',
-                  paddingTop: '0.5rem',
-                  paddingLeft: '0.75rem',
-                  paddingRight: '0.75rem',
-                  paddingBottom: '0.75rem'
-                }}
-              >
-                <h3 
-                  className="font-bold text-center"
-                  style={{
-                    fontFamily: "'Press Start 2P', monospace",
-                    fontSize: '14px',
-                    color: 'white',
-                    lineHeight: '1.2',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Daemon Circlet V.1
-                </h3>
-                <p 
-                  className="text-center"
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: '11px',
-                    color: 'white',
-                    lineHeight: '1.3'
-                  }}
-                >
-                  An elite neural circlet that channels forbidden intelligence, amplifying the wearer's mind and protecting against hypnotism at an unknown cost.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Commands - Compact */}
-        <div className="bg-[#12121a] border border-[#7177FF]/20 p-4">
-          <h2 
-            className="text-[#7177FF] font-bold mb-3 text-sm uppercase tracking-wide"
-            style={{
-              fontFamily: "'Press Start 2P', monospace"
-            }}
-          >
-            Commands
-          </h2>
-          <p className="text-xs text-gray-500 mb-3">mention @daemonagent on Farcaster</p>
-          
-          <div className="space-y-3">
-            {/* Show Daemon */}
-            <div className="border-l-2 border-[#7177FF] pl-3 py-1">
-              <h3 className="text-[#7177FF] font-bold text-base mb-1">Show My Daemon</h3>
-              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent show me my daemon</code>
-              <p className="text-xs text-gray-400">Reveal your digital consciousness through Jungian analysis</p>
-            </div>
-
-            {/* Fix This */}
-            <div className="border-l-2 border-[#2473BC] pl-3 py-1">
-              <h3 className="text-[#2473BC] font-bold text-base mb-1">Fix This</h3>
-              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent fix this</code>
-              <p className="text-xs text-gray-400">Transform harsh messages into kind words</p>
-            </div>
-
-            {/* Just Talk */}
-            <div className="border-l-2 border-[#7177FF] pl-3 py-1">
-              <h3 className="text-[#7177FF] font-bold text-base mb-1">Just Talk</h3>
-              <code className="text-xs text-white bg-[#1a1a24] px-2 py-1 block mb-1">@daemonagent [anything]</code>
-              <p className="text-xs text-gray-400">Have a natural conversation with Azura</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Connect Links - Compact */}
-        <div className="grid grid-cols-2 gap-2">
-          <a 
-            href="https://warpcast.com/daemonagent" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center"
-          >
-            <div className="text-sm font-semibold text-[#7177FF]">Farcaster</div>
-            <div className="text-xs text-gray-500">@daemonagent</div>
-          </a>
-          <a 
-            href="https://github.com/jhinnbay/DaemonAgent-Farcaster" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="bg-[#12121a] border border-[#7177FF]/20 p-3 hover:border-[#2473BC] transition-colors text-center"
-          >
-            <div className="text-sm font-semibold text-[#7177FF]">GitHub</div>
-            <div className="text-xs text-gray-500">Source Code</div>
-          </a>
-        </div>
-
-        {/* Footer - Minimal */}
-        <div className="text-center space-y-2 py-2">
-          <p className="text-gray-400 text-sm italic transition-opacity duration-500">
-            {STATUS_MESSAGES[statusMessageIndex]}
-          </p>
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-            <span className="w-2 h-2 bg-[#2473BC] rounded-full animate-pulse" />
-            ONLINE · Farcaster
-          </div>
-        </div>
-
-        {/* Pattern 3 Image */}
+        {/* Pattern 2 Image */}
         <img 
-          src="/pattern3.png" 
-          alt="Pattern 3" 
+          src="/pattern2.png" 
+          alt="Pattern 2" 
           className="w-full h-auto"
           style={{
             display: 'block',
@@ -825,354 +780,6 @@ export default function Home() {
             marginBottom: 0
           }}
         />
-
-        {/* Main Footer */}
-        <footer className="bg-[#0a0a0f] border-t border-white/10 mt-12 -mb-6" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem', marginRight: '-1rem' }}>
-          {/* Scrolling Images Section */}
-          <div className="relative overflow-hidden py-8">
-            {/* Top Row - Scrolls Left */}
-            <div className="flex gap-4 mb-4 scroll-row-left">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                <img
-                  key={`top-${num}`}
-                  src={`/anbel${num.toString().padStart(2, '0')}.png`}
-                  alt={`Angel ${num}`}
-                  className="flex-shrink-0 w-32 h-32 object-cover"
-                />
-              ))}
-              {/* Duplicate for seamless loop */}
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                <img
-                  key={`top-dup-${num}`}
-                  src={`/anbel${num.toString().padStart(2, '0')}.png`}
-                  alt={`Angel ${num}`}
-                  className="flex-shrink-0 w-32 h-32 object-cover"
-                />
-              ))}
-            </div>
-
-            {/* Bottom Row - Scrolls Right */}
-            <div className="flex gap-4 scroll-row-right">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                <img
-                  key={`bottom-${num}`}
-                  src={`/anbel${num.toString().padStart(2, '0')}.png`}
-                  alt={`Angel ${num}`}
-                  className="flex-shrink-0 w-32 h-32 object-cover"
-                />
-              ))}
-              {/* Duplicate for seamless loop */}
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                <img
-                  key={`bottom-dup-${num}`}
-                  src={`/anbel${num.toString().padStart(2, '0')}.png`}
-                  alt={`Angel ${num}`}
-                  className="flex-shrink-0 w-32 h-32 object-cover"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* MINT YOUR ANGEL Text */}
-          <div className="text-center py-6">
-            <button
-              onClick={() => setShowMintModal(true)}
-              className="flex items-center justify-center gap-2 mx-auto hover:opacity-80 transition-opacity cursor-pointer"
-              style={{
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                boxShadow: 'none'
-              }}
-            >
-              <span
-                className="text-white uppercase"
-                style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: '14px',
-                  letterSpacing: '1px'
-                }}
-              >
-                MINT YOUR ANGEL
-              </span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 16 16"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="text-white"
-              >
-                <path
-                  d="M6 3L11 8L6 13"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Email Signup */}
-          <div className="max-w-md mx-auto px-4 py-6">
-            <form 
-              className="flex flex-col gap-2"
-              onSubmit={async (e) => {
-                e.preventDefault()
-                if (!email || emailSubmitting) return
-
-                setEmailSubmitting(true)
-                setEmailMessage(null)
-
-                try {
-                  const response = await fetch('/api/mailchimp/subscribe', {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email }),
-                  })
-
-                  const data = await response.json()
-
-                  if (data.success) {
-                    setEmailMessage({ type: 'success', text: data.message || 'Successfully subscribed!' })
-                    setEmail('')
-                  } else {
-                    setEmailMessage({ type: 'error', text: data.error || 'Failed to subscribe. Please try again.' })
-                  }
-                } catch (error) {
-                  setEmailMessage({ type: 'error', text: 'Failed to subscribe. Please try again.' })
-                } finally {
-                  setEmailSubmitting(false)
-                  // Clear message after 5 seconds
-                  setTimeout(() => setEmailMessage(null), 5000)
-                }
-              }}
-            >
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email for updates and exclusive content"
-                  className="flex-1 px-4 py-2 bg-[#12121a] border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#7177FF] transition-colors"
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: '12px'
-                  }}
-                  required
-                  disabled={emailSubmitting}
-                />
-                <button
-                  type="submit"
-                  disabled={emailSubmitting || !email}
-                  className="px-6 py-2 bg-[#7177FF] text-white hover:bg-[#5a5fcc] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                    fontSize: '12px'
-                  }}
-                >
-                  {emailSubmitting ? 'Subscribing...' : 'Subscribe'}
-                </button>
-              </div>
-              {emailMessage && (
-                <p
-                  className={`text-xs ${
-                    emailMessage.type === 'success' ? 'text-green-400' : 'text-red-400'
-                  }`}
-                  style={{
-                    fontFamily: "'IBM Plex Mono', monospace",
-                  }}
-                >
-                  {emailMessage.text}
-                </p>
-              )}
-            </form>
-          </div>
-
-          {/* Daemon Logo and Text */}
-          <div className="text-center py-8">
-            <img
-              src="/daemontextlogo.svg"
-              alt="DAEMON"
-              className="w-64 h-auto mx-auto mb-4"
-            />
-            <p
-              className="text-white uppercase"
-              style={{
-                fontFamily: "'IBM Plex Mono', monospace",
-                fontSize: '12px',
-                letterSpacing: '2px'
-              }}
-            >
-              Become Ethereal
-            </p>
-          </div>
-
-          {/* Footer Links */}
-          <div className="border-t border-white/10 py-8">
-            <div className="max-w-6xl mx-auto px-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Contact & Prints */}
-                <div>
-                  <h3
-                    className="text-white uppercase mb-4"
-                    style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: '12px',
-                      letterSpacing: '1px'
-                    }}
-                  >
-                    Contact
-                  </h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <a
-                        href="#"
-                        className="text-gray-400 hover:text-white transition-colors"
-                        style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: '11px'
-                        }}
-                      >
-                        Prints
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Socials */}
-                <div>
-                  <h3
-                    className="text-white uppercase mb-4"
-                    style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: '12px',
-                      letterSpacing: '1px'
-                    }}
-                  >
-                    Socials
-                  </h3>
-                  <div className="flex gap-4">
-                    {/* Instagram Logo */}
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-white transition-colors"
-                      aria-label="Instagram"
-                    >
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-5 h-5"
-                      >
-                        <path
-                          d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </a>
-                    {/* X/Twitter Logo */}
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-white transition-colors"
-                      aria-label="X (Twitter)"
-                    >
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-5 h-5"
-                      >
-                        <path
-                          d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                    </a>
-                  </div>
-                </div>
-
-                {/* Policy */}
-                <div>
-                  <h3
-                    className="text-white uppercase mb-4"
-                    style={{
-                      fontFamily: "'IBM Plex Mono', monospace",
-                      fontSize: '12px',
-                      letterSpacing: '1px'
-                    }}
-                  >
-                    Policy
-                  </h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <a
-                        href="#"
-                        className="text-gray-400 hover:text-white transition-colors"
-                        style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: '11px'
-                        }}
-                      >
-                        Privacy Policy
-                      </a>
-                    </li>
-                    <li>
-                      <a
-                        href="#"
-                        className="text-gray-400 hover:text-white transition-colors"
-                        style={{
-                          fontFamily: "'IBM Plex Mono', monospace",
-                          fontSize: '11px'
-                        }}
-                      >
-                        Terms of Service
-                      </a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </footer>
-
-        {/* CSS Animations for Scrolling */}
-        <style jsx global>{`
-          @keyframes scrollLeft {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-50%);
-            }
-          }
-
-          @keyframes scrollRight {
-            0% {
-              transform: translateX(-50%);
-            }
-            100% {
-              transform: translateX(0);
-            }
-          }
-
-          .scroll-row-left {
-            animation: scrollLeft 30s linear infinite;
-            will-change: transform;
-          }
-
-          .scroll-row-right {
-            animation: scrollRight 30s linear infinite;
-            will-change: transform;
-          }
-        `}</style>
 
         {/* Contract Modal */}
         {showContract && (
@@ -1423,11 +1030,370 @@ By proceeding with this purchase, you confirm that you are of legal age and have
             </div>
           </div>
         )}
-
       </div>
+      )}
+
+      {/* Main Footer - Appears on all pages */}
+      <footer className="bg-[#0a0a0f] border-t border-white/10 mt-12" style={{ marginBottom: 0, paddingBottom: 0 }}>
+        {/* Scrolling Images Section - Full Width */}
+        <div className="relative overflow-hidden py-8" style={{ width: 'calc(100% + 2rem)', marginLeft: '-1rem', marginRight: '-1rem' }}>
+          {/* Top Row - Scrolls Left */}
+          <div className="flex gap-4 mb-4 scroll-row-left">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+              <img
+                key={`top-${num}`}
+                src={`/anbel${num.toString().padStart(2, '0')}.png`}
+                alt={`Angel ${num}`}
+                className="flex-shrink-0 w-32 h-32 object-cover"
+              />
+            ))}
+            {/* Duplicate for seamless loop */}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+              <img
+                key={`top-dup-${num}`}
+                src={`/anbel${num.toString().padStart(2, '0')}.png`}
+                alt={`Angel ${num}`}
+                className="flex-shrink-0 w-32 h-32 object-cover"
+              />
+            ))}
+          </div>
+
+          {/* Bottom Row - Scrolls Right */}
+          <div className="flex gap-4 scroll-row-right">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+              <img
+                key={`bottom-${num}`}
+                src={`/anbel${num.toString().padStart(2, '0')}.png`}
+                alt={`Angel ${num}`}
+                className="flex-shrink-0 w-32 h-32 object-cover"
+              />
+            ))}
+            {/* Duplicate for seamless loop */}
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
+              <img
+                key={`bottom-dup-${num}`}
+                src={`/anbel${num.toString().padStart(2, '0')}.png`}
+                alt={`Angel ${num}`}
+                className="flex-shrink-0 w-32 h-32 object-cover"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* MINT YOUR ANGEL Text */}
+        <div className="text-center py-6 px-4">
+          <button
+            onClick={() => setShowMintModal(true)}
+            className="flex items-center justify-center gap-2 mx-auto hover:opacity-80 transition-opacity cursor-pointer"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              outline: 'none',
+              boxShadow: 'none'
+            }}
+          >
+            <span
+              className="text-white uppercase"
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: '14px',
+                letterSpacing: '1px'
+              }}
+            >
+              MINT YOUR ANGEL
+            </span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="text-white"
+            >
+              <path
+                d="M6 3L11 8L6 13"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Email Signup */}
+        <div className="max-w-md mx-auto px-4 py-6">
+          <form 
+            className="flex flex-col gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!email || emailSubmitting) return
+
+              setEmailSubmitting(true)
+              setEmailMessage(null)
+
+              try {
+                const response = await fetch('/api/mailchimp/subscribe', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ email }),
+                })
+
+                const data = await response.json()
+
+                if (data.success) {
+                  setEmailMessage({ type: 'success', text: data.message || 'Successfully subscribed!' })
+                  setEmail('')
+                } else {
+                  setEmailMessage({ type: 'error', text: data.error || 'Failed to subscribe. Please try again.' })
+                }
+              } catch (error) {
+                setEmailMessage({ type: 'error', text: 'Failed to subscribe. Please try again.' })
+              } finally {
+                setEmailSubmitting(false)
+                // Clear message after 5 seconds
+                setTimeout(() => setEmailMessage(null), 5000)
+              }
+            }}
+          >
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email for updates and exclusive content"
+                className="flex-1 px-4 py-2 bg-[#12121a] border border-white/20 text-white placeholder-gray-500 focus:outline-none focus:border-[#7177FF] transition-colors"
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '12px'
+                }}
+                required
+                disabled={emailSubmitting}
+              />
+              <button
+                type="submit"
+                disabled={emailSubmitting || !email}
+                className="px-6 py-2 bg-[#7177FF] text-white hover:bg-[#5a5fcc] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: '12px'
+                }}
+              >
+                {emailSubmitting ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </div>
+            {emailMessage && (
+              <p
+                className={`text-xs ${
+                  emailMessage.type === 'success' ? 'text-green-400' : 'text-red-400'
+                }`}
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                }}
+              >
+                {emailMessage.text}
+              </p>
+            )}
+          </form>
+        </div>
+
+        {/* Daemon Logo and Text */}
+        <div className="text-center py-8 px-4">
+          <img
+            src="/daemontextlogo.svg"
+            alt="DAEMON"
+            className="w-64 h-auto mx-auto mb-4"
+          />
+          <p
+            className="text-white uppercase"
+            style={{
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: '12px',
+              letterSpacing: '2px'
+            }}
+          >
+            No tree grows to heaven,<br />
+            without roots reaching hell.
+          </p>
+        </div>
+
+        {/* Footer Links */}
+        <div className="border-t border-white/10 pt-8 pb-0">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {/* Contact & Prints */}
+              <div>
+                <h3
+                  className="text-white uppercase mb-4"
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: '12px',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  Contact
+                </h3>
+                <ul className="space-y-2">
+                  <li>
+                    <a
+                      href="#"
+                      className="text-gray-400 hover:text-white transition-colors"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: '11px'
+                      }}
+                    >
+                      Prints
+                    </a>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Socials */}
+              <div>
+                <h3
+                  className="text-white uppercase mb-4"
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: '12px',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  Socials
+                </h3>
+                <div className="flex gap-4">
+                  {/* Instagram Logo */}
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                    aria-label="Instagram"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </a>
+                  {/* X/Twitter Logo */}
+                  <a
+                    href="#"
+                    className="text-gray-400 hover:text-white transition-colors"
+                    aria-label="X (Twitter)"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+
+              {/* Policy */}
+              <div>
+                <h3
+                  className="text-white uppercase mb-4"
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: '12px',
+                    letterSpacing: '1px'
+                  }}
+                >
+                  Policy
+                </h3>
+                <ul className="space-y-2">
+                  <li>
+                    <a
+                      href="#"
+                      className="text-gray-400 hover:text-white transition-colors"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: '11px'
+                      }}
+                    >
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#"
+                      className="text-gray-400 hover:text-white transition-colors"
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontSize: '11px'
+                      }}
+                    >
+                      Terms of Service
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* CSS Animations for Scrolling */}
+      <style jsx global>{`
+        @keyframes scrollLeft {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+
+        @keyframes scrollRight {
+          0% {
+            transform: translateX(-50%);
+          }
+          100% {
+            transform: translateX(0);
+          }
+        }
+
+        .scroll-row-left {
+          animation: scrollLeft 30s linear infinite;
+          will-change: transform;
+        }
+
+        .scroll-row-right {
+          animation: scrollRight 30s linear infinite;
+          will-change: transform;
+        }
+      `}</style>
 
       {/* Mint Modal */}
       <MintModal isOpen={showMintModal} onClose={() => setShowMintModal(false)} />
+
+      {/* Navigation Bar */}
+      <Navbar 
+        currentPage={currentPage} 
+        onNavigate={(page) => {
+          setCurrentPage(page)
+          // Scroll to top when navigating
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }} 
+      />
     </main>
     </>
   )
