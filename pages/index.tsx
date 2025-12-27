@@ -47,42 +47,32 @@ export default function Home() {
   const motionHandlerRef = useRef<((event: DeviceMotionEvent) => void) | null>(null)
   const permissionHandlersRef = useRef<(() => void)[]>([])
 
-  // Motion detection for shake-to-move
+  // Motion detection for tilt-based movement (zero-gravity ice effect)
   useEffect(() => {
     if (!galleryRef) return
-
-    let lastShakeTime = 0
-    const SHAKE_COOLDOWN = 100 // milliseconds between shake detections
 
     const handleMotion = (event: DeviceMotionEvent) => {
       if (isDragging) return // Don't interfere with dragging
       
-      const now = Date.now()
-      if (now - lastShakeTime < SHAKE_COOLDOWN) return // Throttle shake detection
-      
       const acceleration = event.accelerationIncludingGravity
-      const SHAKE_THRESHOLD = 15 // Threshold for shake detection
+      if (!acceleration) return
 
-      if (acceleration && 
-          (Math.abs(acceleration.x ?? 0) > SHAKE_THRESHOLD || 
-           Math.abs(acceleration.y ?? 0) > SHAKE_THRESHOLD || 
-           Math.abs(acceleration.z ?? 0) > SHAKE_THRESHOLD)) {
-        
-        lastShakeTime = now
-        
-        // Calculate velocity based on acceleration direction
-        // Scale the acceleration to create smooth movement
-        const shakeVelocity = {
-          x: (acceleration.x ?? 0) * 3, // Scale factor for smooth movement
-          y: (acceleration.y ?? 0) * 3
-        }
-
-        // Apply the velocity, which will trigger the existing bounce/momentum system
-        setVelocity((prev) => ({
-          x: prev.x + shakeVelocity.x,
-          y: prev.y + shakeVelocity.y
-        }))
+      // Use gravity to determine tilt direction (inverted for natural feel)
+      // Acceleration includes gravity, so tilting the phone changes the x/y values
+      // Scale the tilt to create smooth, ice-like movement
+      const TILT_SENSITIVITY = 0.8 // Adjust this to control how responsive the tilt is
+      
+      // Invert x so tilting right moves the element right (natural feel)
+      const tiltVelocity = {
+        x: -(acceleration.x ?? 0) * TILT_SENSITIVITY,
+        y: (acceleration.y ?? 0) * TILT_SENSITIVITY
       }
+
+      // Apply the velocity continuously based on tilt, which will trigger the existing bounce/momentum system
+      setVelocity((prev) => ({
+        x: prev.x * 0.7 + tiltVelocity.x * 0.3, // Smooth interpolation for fluid movement
+        y: prev.y * 0.7 + tiltVelocity.y * 0.3
+      }))
     }
 
     // Store handler reference for cleanup
