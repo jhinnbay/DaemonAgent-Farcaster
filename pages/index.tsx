@@ -605,7 +605,7 @@ export default function Home() {
                   onClick={async () => {
                     try {
                       const shareText = "Show me my Daemon! @daemonagent"
-                      const miniAppUrl = "https://daemoncast.vercel.app"
+                      const miniAppUrl = "https://farcaster.xyz/miniapps/ITn8j3G_ellt/azura-commands"
                       // Combine text with mini-app URL to create an embedded share
                       // When Farcaster sees the URL, it will automatically create a mini-app embed card
                       const shareContent = `${shareText}\n\n${miniAppUrl}`
@@ -623,7 +623,7 @@ export default function Home() {
                       console.error('Error sharing:', error)
                       // Fallback to opening Warpcast with embedded mini-app
                       const shareText = "Show me my Daemon! @daemonagent"
-                      const miniAppUrl = "https://daemoncast.vercel.app"
+                      const miniAppUrl = "https://farcaster.xyz/miniapps/ITn8j3G_ellt/azura-commands"
                       const shareContent = `${shareText}\n\n${miniAppUrl}`
                       window.open(`https://warpcast.com/~/compose?text=${encodeURIComponent(shareContent)}`, '_blank')
                     }
