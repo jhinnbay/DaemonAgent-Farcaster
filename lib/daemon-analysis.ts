@@ -36,7 +36,11 @@ async function fetchUserProfile(fid: number, apiKey: string): Promise<UserProfil
       headers: { "x-api-key": apiKey },
       signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[daemon-analysis] Neynar API error (${res.status}):`, errorText);
+      return null;
+    }
     const data: any = await res.json();
     return (data?.users?.[0] as UserProfile) || null;
   } catch (error) {
@@ -51,7 +55,11 @@ async function fetchUserCasts(fid: number, apiKey: string, limit = 20): Promise<
       headers: { "x-api-key": apiKey },
       signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`[daemon-analysis] Neynar feed API error (${res.status}):`, errorText);
+      return [];
+    }
     const data: any = await res.json();
     return (data?.casts as Cast[]) || [];
   } catch (error) {
@@ -132,13 +140,16 @@ Respond as Azura would - with hesitation, vulnerability, but deep insight. Keep 
   });
 
   if (!res.ok) {
-    throw new Error(`DeepSeek API error: ${res.status}`);
+    const errorText = await res.text();
+    console.error(`[daemon-analysis] DeepSeek API error (${res.status}):`, errorText);
+    throw new Error(`DeepSeek API error: ${res.status} - ${errorText.substring(0, 200)}`);
   }
 
   const data: any = await res.json();
   let response: string = (data?.choices?.[0]?.message?.content || "").trim();
 
   if (!response) {
+    console.error("[daemon-analysis] Empty response from DeepSeek:", data);
     throw new Error("Empty daemon analysis response");
   }
 

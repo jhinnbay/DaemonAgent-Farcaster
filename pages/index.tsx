@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { sdk } from '@farcaster/miniapp-sdk'
 import Head from 'next/head'
 import MintModal from '@/components/MintModal'
@@ -44,6 +44,8 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState<'profile' | 'daemon' | 'token'>('daemon')
   const [emailSubmitting, setEmailSubmitting] = useState(false)
   const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const motionHandlerRef = useRef<((event: DeviceMotionEvent) => void) | null>(null)
+  const permissionHandlersRef = useRef<(() => void)[]>([])
 
   // Motion detection for shake-to-move
   useEffect(() => {
@@ -83,11 +85,56 @@ export default function Home() {
       }
     }
 
-    // Add motion listener directly (will work on browsers that support it without permission)
-    window.addEventListener('devicemotion', handleMotion)
+    // Store handler reference for cleanup
+    motionHandlerRef.current = handleMotion
+
+    const initMotionDetection = () => {
+      // Request permission for iOS 13+ devices
+      if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+        // For iOS, we'll initialize on first user interaction
+        const handlePermissionRequest = async () => {
+          try {
+            const state = await (DeviceMotionEvent as any).requestPermission()
+            if (state === 'granted' && motionHandlerRef.current) {
+              window.addEventListener('devicemotion', motionHandlerRef.current)
+            } else {
+              console.log('Motion permission denied')
+            }
+          } catch (error) {
+            console.error('Error requesting motion permission:', error)
+          }
+        }
+        
+        // Request permission on first user interaction (click/touch)
+        const requestPermissionOnClick = () => {
+          handlePermissionRequest()
+        }
+        const requestPermissionOnTouch = () => {
+          handlePermissionRequest()
+        }
+        
+        document.addEventListener('click', requestPermissionOnClick, { once: true })
+        document.addEventListener('touchstart', requestPermissionOnTouch, { once: true })
+        permissionHandlersRef.current = [
+          () => document.removeEventListener('click', requestPermissionOnClick),
+          () => document.removeEventListener('touchstart', requestPermissionOnTouch)
+        ]
+      } else {
+        // For non-iOS 13+ browsers, add listener directly
+        window.addEventListener('devicemotion', handleMotion)
+      }
+    }
+
+    initMotionDetection()
 
     return () => {
-      window.removeEventListener('devicemotion', handleMotion)
+      // Clean up motion listener
+      if (motionHandlerRef.current) {
+        window.removeEventListener('devicemotion', motionHandlerRef.current)
+      }
+      // Clean up permission request handlers
+      permissionHandlersRef.current.forEach(cleanup => cleanup())
+      permissionHandlersRef.current = []
     }
   }, [galleryRef, isDragging])
 

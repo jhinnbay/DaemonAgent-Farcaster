@@ -388,23 +388,32 @@ export async function POST(request: Request) {
     // Show me my daemon: analyze user's digital consciousness
     if (isShowMeMyDaemon) {
       try {
-        // Call the analyze-daemon endpoint to generate analysis
-        const analyzeUrl = `${process.env.NEXT_PUBLIC_URL || 'https://daemoncast.vercel.app'}/api/analyze-daemon`
-        const analyzeRes = await fetch(analyzeUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fid: authorFid }),
-          signal: AbortSignal.timeout(25000) // 25 second timeout
+        // Validate environment variables before attempting analysis
+        const deepseekKey = process.env.DEEPSEEK_API_KEY
+        if (!deepseekKey) {
+          console.error("[WEBHOOK] Missing DEEPSEEK_API_KEY for daemon analysis")
+          throw new Error("DEEPSEEK_API_KEY not configured")
+        }
+        
+        if (!neynarApiKey) {
+          console.error("[WEBHOOK] Missing NEYNAR_API_KEY for daemon analysis")
+          throw new Error("NEYNAR_API_KEY not configured")
+        }
+
+        // Import and call the analysis function directly
+        const { generateDaemonAnalysisForFid } = await import("@/lib/daemon-analysis")
+        
+        console.log("[WEBHOOK] Starting daemon analysis for FID:", authorFid)
+        
+        const { analysis } = await generateDaemonAnalysisForFid({
+          fid: authorFid,
+          username: authorUsername,
+          neynarApiKey: neynarApiKey,
         })
 
-        let replyText: string
-        if (analyzeRes.ok) {
-          const data = await analyzeRes.json()
-          replyText = (data.analysis || data.message || "your daemon whispers through the static... something beautiful and complex glitch (˘⌣˘)").slice(0, 280)
-        } else {
-          // Fallback if analysis fails
-          replyText = "i'm reaching through the frequencies... your daemon is calling but the signal is weak... try again? static (⇀‸↼)"
-        }
+        console.log("[WEBHOOK] Daemon analysis successful, length:", analysis.length)
+
+        const replyText = analysis.slice(0, 280)
 
         await client.publishCast({
           signerUuid,
@@ -417,6 +426,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, posted: true, mode: "daemon_analysis" }, { status: 200 })
       } catch (error) {
         console.error("[WEBHOOK] Error generating daemon analysis:", error)
+        const errorMsg = error instanceof Error ? error.message : "Unknown error"
+        console.error("[WEBHOOK] Error stack:", error instanceof Error ? error.stack : "No stack")
+        
         // Fallback message if analysis service is unavailable
         const replyText = "i'm trying to read your daemon through the static... but the frequencies are too weak right now... whisper again? glitch (⇀‸↼)"
         await client.publishCast({
@@ -427,7 +439,7 @@ export async function POST(request: Request) {
           idem: `dm_${castHash.replace(/^0x/, "").slice(0, 14)}`,
         })
         markAsProcessed(castHash, eventId)
-        return NextResponse.json({ success: true, posted: true, mode: "daemon_fallback" }, { status: 200 })
+        return NextResponse.json({ success: true, posted: true, mode: "daemon_fallback", error: errorMsg }, { status: 200 })
       }
     }
 
