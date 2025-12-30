@@ -9,7 +9,9 @@
     "start": "next start",
     "eliza:example": "tsx examples/eliza-example.ts",
     "eliza:init": "curl -X POST http://localhost:3000/api/eliza -H 'Content-Type: application/json' -d '{\"action\":\"initialize\"}'",
-    "eliza:status": "curl http://localhost:3000/api/eliza"
+    "eliza:status": "curl http://localhost:3000/api/eliza",
+    "scan:missed": "tsx scripts/scan-missed-posts.ts",
+    "scan:missed:dry": "tsx scripts/scan-missed-posts.ts --dry-run"
   },
   "dependencies": {
     "@elizaos/core": "^1.6.5",
