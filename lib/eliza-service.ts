@@ -460,7 +460,6 @@ export class ElizaService {
       const farcasterFid = process.env.FARCASTER_FID || process.env.BOT_FID
       const neynarApiKey = process.env.NEYNAR_API_KEY || process.env.FARCASTER_NEYNAR_API_KEY
       const signerUuid = process.env.NEYNAR_SIGNER_UUID || process.env.FARCASTER_SIGNER_UUID
-      const farcasterMode = process.env.FARCASTER_MODE || 'webhook'
       
       // CRITICAL: Warn if not in webhook mode - polling will consume massive credits!
       if (farcasterMode !== 'webhook') {
