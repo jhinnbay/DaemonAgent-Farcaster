@@ -558,7 +558,7 @@ Respond naturally as Azura. Be warm, engaging, and actually address what they're
               },
               { role: "user", content: prompt },
             ],
-            max_tokens: 250,
+            max_tokens: 400,
             temperature: 0.9,
           }),
         })
@@ -567,8 +567,9 @@ Respond naturally as Azura. Be warm, engaging, and actually address what they're
           const data = await res.json()
           const aiText = (data?.choices?.[0]?.message?.content || "").trim()
           if (aiText && aiText.length > 0) {
+            // Truncate to 280 characters (Farcaster limit) but allow more tokens for generation
             replyText = aiText.length > 280 ? aiText.slice(0, 277) + "..." : aiText
-            console.log("[WEBHOOK] Generated AI response:", replyText.substring(0, 50) + "...")
+            console.log("[WEBHOOK] Generated AI response (length:", replyText.length, "):", replyText.substring(0, 50) + "...")
           }
         } else {
           console.warn("[WEBHOOK] DeepSeek failed for contextual response, using fallback:", res.status)
