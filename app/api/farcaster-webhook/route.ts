@@ -442,9 +442,7 @@ export async function POST(request: Request) {
       const parentText = (parent as any)?.cast?.text || ""
 
       const fixed = await generateFixThisText(parentText)
-      const replyText = fixed.startsWith("fixed")
-        ? fixed
-        : `fixed it... here: ${fixed}`.slice(0, 280)
+      const replyText = fixed.slice(0, 280)
 
       const result = await client.publishCast({
         signerUuid,
