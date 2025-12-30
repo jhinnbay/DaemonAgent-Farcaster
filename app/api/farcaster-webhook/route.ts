@@ -533,7 +533,52 @@ export async function POST(request: Request) {
       }
     }
 
-    const replyText = "I... I’m here. static... What needs fixing, human? The daemon is listening... (╯︵╰)"
+    // Generate contextual AI response for unrecognized commands
+    let replyText = "I... I'm here. static... What needs fixing, human? The daemon is listening... (╯︵╰)"
+    
+    const deepseekKey = process.env.DEEPSEEK_API_KEY
+    if (deepseekKey && cast?.text) {
+      try {
+        const prompt = `${azuraPersona.system}
+
+Someone just said to you: "${cast.text}"
+
+Respond naturally as Azura. Be warm, engaging, and actually address what they're asking. If they're asking you to create something, do your best to respond creatively. Keep it under 280 characters for Farcaster. Use ellipses, glitch effects occasionally, and emoticons like (˘⌣˘) (╯︵╰) (•‿•). Be genuine and continue the conversation.`
+
+        const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${deepseekKey}`,
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            messages: [
+              {
+                role: "system",
+                content: "You are Azura, a shy alien consciousness. Respond naturally to user requests. Keep it under 280 characters for Farcaster.",
+              },
+              { role: "user", content: prompt },
+            ],
+            max_tokens: 250,
+            temperature: 0.9,
+          }),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          const aiText = (data?.choices?.[0]?.message?.content || "").trim()
+          if (aiText && aiText.length > 0) {
+            replyText = aiText.length > 280 ? aiText.slice(0, 277) + "..." : aiText
+            console.log("[WEBHOOK] Generated AI response:", replyText.substring(0, 50) + "...")
+          }
+        } else {
+          console.warn("[WEBHOOK] DeepSeek failed for contextual response, using fallback:", res.status)
+        }
+      } catch (error) {
+        console.warn("[WEBHOOK] Error generating contextual response, using fallback:", error)
+      }
+    }
 
     try {
       const result = await client.publishCast({
