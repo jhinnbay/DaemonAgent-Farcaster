@@ -443,6 +443,16 @@ export class ElizaService {
     this.initializing = true;
 
     try {
+      // QUICK FIX: Skip ElizaOS entirely in webhook mode to prevent polling/credit usage
+      const farcasterMode = process.env.FARCASTER_MODE || 'webhook'
+      if (farcasterMode === 'webhook') {
+        console.log('[ElizaOS] Webhook mode - skipping initialization to prevent polling/credit usage')
+        this.initializing = false
+        this.initialized = true
+        this.runtime = null
+        return
+      }
+      
       console.log('[ElizaOS] Initializing ElizaOS service...');
 
       // Validate required environment variables
@@ -451,6 +461,14 @@ export class ElizaService {
       const neynarApiKey = process.env.NEYNAR_API_KEY || process.env.FARCASTER_NEYNAR_API_KEY
       const signerUuid = process.env.NEYNAR_SIGNER_UUID || process.env.FARCASTER_SIGNER_UUID
       const farcasterMode = process.env.FARCASTER_MODE || 'webhook'
+      
+      // CRITICAL: Warn if not in webhook mode - polling will consume massive credits!
+      if (farcasterMode !== 'webhook') {
+        console.warn(`[ElizaOS] ⚠️⚠️⚠️ FARCASTER_MODE is set to '${farcasterMode}', not 'webhook'!`)
+        console.warn(`[ElizaOS] ⚠️⚠️⚠️ This will cause polling and consume CREDITS! Set FARCASTER_MODE=webhook to use webhooks instead.`)
+      } else {
+        console.log('[ElizaOS] ✅ FARCASTER_MODE=webhook - polling should be disabled')
+      }
 
       console.log('[ElizaOS] Environment variable check:', {
         farcasterFid: farcasterFid ? 'found' : 'missing',
@@ -555,9 +573,10 @@ export class ElizaService {
             const manager = farcasterService?.managers?.get?.(this.runtime.agentId);
             if (manager?.interactions?.stop) {
               await manager.interactions.stop();
-              console.log('[ElizaOS] Webhook mode: stopped Farcaster interactions poller');
+              console.log('[ElizaOS] ✅ Webhook mode: stopped Farcaster interactions poller (saves credits!)');
             } else {
-              console.warn('[ElizaOS] Webhook mode: could not find Farcaster interactions poller to stop');
+              console.error('[ElizaOS] ❌ Webhook mode: could not find Farcaster interactions poller to stop - POLLING MAY STILL BE RUNNING!');
+              console.error('[ElizaOS] This could cause excessive credit usage. Check logs for polling activity.');
             }
           } catch (stopPollError) {
             console.warn('[ElizaOS] Webhook mode: error stopping Farcaster interactions poller (continuing):', stopPollError);

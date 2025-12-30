@@ -6,6 +6,10 @@ import { generateDaemonAnalysisForFid } from "@/lib/daemon-analysis"
 export const runtime = "nodejs"
 export const maxDuration = 30
 
+// Simple rate limiting: track last call time per IP
+const lastCallTime = new Map<string, number>()
+const RATE_LIMIT_MS = 60000 // 1 minute between calls
+
 function isBotMention(text: string): boolean {
   const t = (text || "").toLowerCase()
   return t.includes("@daemonagent") || t.includes("daemonagent") || t.includes("@azura")
@@ -142,6 +146,37 @@ ${originalText}`
  */
 export async function POST(request: Request) {
   try {
+    // Rate limiting: prevent excessive calls
+    const clientIp = request.headers.get("x-forwarded-for")?.split(",")[0] || 
+                     request.headers.get("x-real-ip") || 
+                     "unknown"
+    const now = Date.now()
+    const lastCall = lastCallTime.get(clientIp) || 0
+    
+    if (now - lastCall < RATE_LIMIT_MS) {
+      const waitSeconds = Math.ceil((RATE_LIMIT_MS - (now - lastCall)) / 1000)
+      console.warn(`[MANUAL_SCAN] Rate limit: IP ${clientIp} called too soon, wait ${waitSeconds}s`)
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Rate limited: Please wait ${waitSeconds} seconds between calls`,
+          retryAfter: waitSeconds,
+        },
+        { status: 429 }
+      )
+    }
+    lastCallTime.set(clientIp, now)
+    
+    // Clean up old entries (keep last 100 IPs)
+    if (lastCallTime.size > 100) {
+      const entries = Array.from(lastCallTime.entries())
+      entries.sort((a, b) => b[1] - a[1]) // Sort by most recent
+      lastCallTime.clear()
+      entries.slice(0, 100).forEach(([ip, time]) => lastCallTime.set(ip, time))
+    }
+
+    console.log(`[MANUAL_SCAN] Request from IP: ${clientIp}`)
+    
     const neynarApiKey = process.env.NEYNAR_API_KEY || process.env.FARCASTER_NEYNAR_API_KEY || ""
     const signerUuid = process.env.NEYNAR_SIGNER_UUID || process.env.FARCASTER_SIGNER_UUID || ""
     const botFidRaw = process.env.FARCASTER_FID || process.env.BOT_FID || ""
@@ -172,6 +207,8 @@ export async function POST(request: Request) {
 
     // NOTE: Neynar SDK v3 has had endpoint/version mismatches for notifications in some setups.
     // Use the v2 endpoint directly (this is the same endpoint you saw in the logs).
+    // IMPORTANT: This endpoint costs credits! Limit calls and use webhooks when possible.
+    console.log(`[MANUAL_SCAN] Fetching notifications (limit=${limit}, maxAgeDays=${maxAgeDays}) - THIS COSTS CREDITS!`)
     const notificationsUrl = `https://api.neynar.com/v2/farcaster/notifications?fid=${botFid}&type=mentions,replies&limit=${limit}`
     const notifRes = await fetch(notificationsUrl, {
       method: "GET",

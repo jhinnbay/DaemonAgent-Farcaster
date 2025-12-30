@@ -80,8 +80,9 @@ function isAlreadyProcessing(castHash: string): boolean {
   return false
 }
 
-// Check thread depth - limit to 5 messages
-async function getThreadDepth(castHash: string, apiKey: string): Promise<number> {
+// Count how many times the bot has already replied in this conversation thread
+// Returns the number of bot replies found (max 3 allowed)
+async function countBotRepliesInThread(castHash: string, botFid: number, apiKey: string): Promise<number> {
   try {
     const res = await fetch(
       `https://api.neynar.com/v2/farcaster/cast/conversation?identifier=${castHash}&type=hash&reply_depth=10&include_chronological_parent_casts=true`,
@@ -91,13 +92,50 @@ async function getThreadDepth(castHash: string, apiKey: string): Promise<number>
       }
     )
     
-    if (!res.ok) return 0
+    if (!res.ok) {
+      console.log("[WEBHOOK] Thread conversation API call failed:", res.status, res.statusText)
+      return 0 // On error, allow response (fail open)
+    }
     
     const data = await res.json()
-    const chronological = data?.conversation?.cast?.chronological_parent_casts || []
-    return chronological.length + 1
-  } catch {
-    return 0
+    const conversation = data?.conversation
+    
+    if (!conversation) {
+      console.log("[WEBHOOK] No conversation data found")
+      return 0
+    }
+    
+    // Get all casts in the thread (parent casts + current + replies)
+    const chronological = conversation?.cast?.chronological_parent_casts || []
+    const directReplies = conversation?.cast?.direct_replies || []
+    
+    // Count bot replies in chronological parents
+    let botReplyCount = 0
+    for (const parentCast of chronological) {
+      if (parentCast?.author?.fid === botFid) {
+        botReplyCount++
+      }
+    }
+    
+    // Count bot replies in direct replies
+    for (const reply of directReplies) {
+      if (reply?.author?.fid === botFid) {
+        botReplyCount++
+      }
+    }
+    
+    console.log("[WEBHOOK] Bot reply count in thread:", {
+      castHash: castHash.substring(0, 10) + "...",
+      botFid,
+      chronologicalCount: chronological.length,
+      directRepliesCount: directReplies.length,
+      botReplyCount
+    })
+    
+    return botReplyCount
+  } catch (error) {
+    console.error("[WEBHOOK] Error counting bot replies:", error)
+    return 0 // On error, allow response (fail open)
   }
 }
 
@@ -111,6 +149,37 @@ function getParentHashFromCast(cast: any): string | null {
     cast?.parent?.castHash ||
     null
   )
+}
+
+// Like a cast to make users feel warm and appreciated
+async function likeCast(castHash: string, signerUuid: string, apiKey: string): Promise<boolean> {
+  try {
+    const res = await fetch("https://api.neynar.com/v2/farcaster/reaction", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+      },
+      body: JSON.stringify({
+        signer_uuid: signerUuid,
+        reaction_type: "like",
+        target: castHash,
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+
+    if (!res.ok) {
+      const errorText = await res.text()
+      console.warn("[WEBHOOK] Failed to like cast:", res.status, errorText)
+      return false
+    }
+
+    console.log("[WEBHOOK] ✅ Liked cast:", castHash.substring(0, 10) + "...")
+    return true
+  } catch (error) {
+    console.error("[WEBHOOK] Error liking cast:", error)
+    return false
+  }
 }
 
 async function generateFixThisText(originalText: string): Promise<string> {
@@ -294,14 +363,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, message: "Already processing" })
     }
     
-    // FAIL-SAFE: Limit thread depth to 5 messages
-    if (apiKey) {
-      const threadDepth = await getThreadDepth(castHash, apiKey)
-      console.log("[WEBHOOK] Thread depth:", threadDepth)
-      if (threadDepth >= 5) {
-        console.log("[WEBHOOK] Thread limit reached")
+    // FAIL-SAFE: Limit to 3 bot replies per thread (as per README)
+    // This prevents infinite conversation loops while allowing natural back-and-forth
+    const botFidNum = botFid ? Number(botFid) : null
+    if (apiKey && botFidNum) {
+      const botReplyCount = await countBotRepliesInThread(castHash, botFidNum, apiKey)
+      console.log("[WEBHOOK] Bot reply count check:", botReplyCount)
+      if (botReplyCount >= 3) {
+        console.log("[WEBHOOK] Bot reply limit reached (max 3 bot replies per thread)")
         markAsProcessed(castHash, eventId)
-        return NextResponse.json({ success: true, message: "Thread limit reached", depth: threadDepth })
+        return NextResponse.json({ 
+          success: true, 
+          message: "Bot reply limit reached (max 3 bot replies per thread)", 
+          botReplyCount 
+        })
       }
     }
     
@@ -351,6 +426,10 @@ export async function POST(request: Request) {
           parentAuthorFid: authorFid,
           idem: `wh_${castHash.replace(/^0x/, "").slice(0, 14)}`,
         })
+        
+        // Like the user's cast to make them feel warm
+        await likeCast(castHash, signerUuid, neynarApiKey)
+        
         markAsProcessed(castHash, eventId)
         return NextResponse.json({ success: true, posted: true, mode: "fix_this_no_parent" }, { status: 200 })
       }
@@ -380,6 +459,9 @@ export async function POST(request: Request) {
         targetCast: parentHash,
         replyHash: (result as any)?.cast?.hash,
       })
+
+      // Like the user's cast to make them feel warm
+      await likeCast(castHash, signerUuid, neynarApiKey)
 
       markAsProcessed(castHash, eventId)
       return NextResponse.json({ success: true, posted: true, mode: "fix_this" }, { status: 200 })
@@ -422,6 +504,10 @@ export async function POST(request: Request) {
           parentAuthorFid: authorFid,
           idem: `dm_${castHash.replace(/^0x/, "").slice(0, 14)}`,
         })
+        
+        // Like the user's cast to make them feel warm
+        await likeCast(castHash, signerUuid, neynarApiKey)
+        
         markAsProcessed(castHash, eventId)
         return NextResponse.json({ success: true, posted: true, mode: "daemon_analysis" }, { status: 200 })
       } catch (error) {
@@ -438,6 +524,10 @@ export async function POST(request: Request) {
           parentAuthorFid: authorFid,
           idem: `dm_${castHash.replace(/^0x/, "").slice(0, 14)}`,
         })
+        
+        // Like the user's cast to make them feel warm
+        await likeCast(castHash, signerUuid, neynarApiKey)
+        
         markAsProcessed(castHash, eventId)
         return NextResponse.json({ success: true, posted: true, mode: "daemon_fallback", error: errorMsg }, { status: 200 })
       }
@@ -459,6 +549,9 @@ export async function POST(request: Request) {
         parent: castHash,
         replyHash: result?.cast?.hash
       })
+
+      // Like the user's cast to make them feel warm
+      await likeCast(castHash, signerUuid, neynarApiKey)
 
       markAsProcessed(castHash, eventId)
       return NextResponse.json(
