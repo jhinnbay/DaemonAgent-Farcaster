@@ -578,6 +578,33 @@ export default function ProfilePage({ userProfile }: ProfilePageProps) {
       className="w-full px-4 py-6 pb-32"
       style={{ fontFamily: "'IBM Plex Mono', monospace", marginTop: '32px' }}
     >
+      {/* Logo and Quote at Top */}
+      <div className="mb-8 text-center">
+        <img 
+          src="/daemontextlogo.svg" 
+          alt="DAEMON" 
+          className="w-full max-w-md mx-auto mb-4"
+          style={{ 
+            display: 'block',
+            imageRendering: 'auto',
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale'
+          }}
+        />
+        <p
+          className="text-white uppercase"
+          style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: '12px',
+            letterSpacing: '2px',
+            lineHeight: '1.6'
+          }}
+        >
+          No tree grows to heaven,<br />
+          without roots reaching hell.
+        </p>
+      </div>
+
       {/* Header */}
       <h1 
         className="text-white uppercase tracking-wider mb-8"

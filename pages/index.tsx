@@ -41,7 +41,7 @@ export default function Home() {
   const [showContract, setShowContract] = useState(false)
   const [showMintModal, setShowMintModal] = useState(false)
   const [email, setEmail] = useState('')
-  const [currentPage, setCurrentPage] = useState<'profile' | 'daemon' | 'token'>('daemon')
+  const [currentPage, setCurrentPage] = useState<'profile' | 'daemon' | 'token'>('profile')
   const [emailSubmitting, setEmailSubmitting] = useState(false)
   const [emailMessage, setEmailMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 

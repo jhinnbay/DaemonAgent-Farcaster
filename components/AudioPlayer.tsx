@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const TRACKS = [
+  { name: 'Plastic Love', url: '/Plastic Love.mp3' },
   { name: 'Heavenly Drift', url: '/Heavenly Drift.mp3' },
   { name: 'Crumbling World', url: '/Crumbling World.wav' },
   { name: 'Digital World', url: '/Digital World.wav' },
