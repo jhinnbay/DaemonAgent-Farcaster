@@ -4,6 +4,7 @@ import { getStakingData, stakeTokens, purifyTokens, harvestTokens } from '@/lib/
 import { getFidFromUsername, getWalletAddress } from '@/lib/farcaster-utils'
 import { StakingData } from '@/lib/staking-service'
 import StakeModal from './StakeModal'
+import QuizModal from './QuizModal'
 
 const SURVEYS = [
   {
@@ -346,6 +347,8 @@ export default function ProfilePage({ userProfile }: ProfilePageProps) {
   const [showTooltip, setShowTooltip] = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [showStakeModal, setShowStakeModal] = useState(false)
+  const [showQuizModal, setShowQuizModal] = useState(false)
+  const [selectedSurvey, setSelectedSurvey] = useState<typeof SURVEYS[0] | null>(null)
 
   // Get FID and wallet on mount
   useEffect(() => {
@@ -516,6 +519,25 @@ export default function ProfilePage({ userProfile }: ProfilePageProps) {
       setError(err instanceof Error ? err.message : 'Failed to harvest tokens')
     } finally {
       setActionLoading(null)
+    }
+  }
+
+  // Handle quiz completion
+  const handleQuizComplete = async (answers: Record<number, string>) => {
+    if (!selectedSurvey) return
+
+    try {
+      console.log('[ProfilePage] Quiz completed:', {
+        surveyId: selectedSurvey.id,
+        answers
+      })
+      
+      // TODO: Send answers to API endpoint for processing
+      // For now, just log the completion
+      alert(`Quiz "${selectedSurvey.title}" completed! Your answers have been recorded.`)
+    } catch (error) {
+      console.error('[ProfilePage] Error completing quiz:', error)
+      alert('Failed to submit quiz. Please try again.')
     }
   }
 
@@ -858,17 +880,21 @@ export default function ProfilePage({ userProfile }: ProfilePageProps) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-base font-bold truncate">{survey.title}</p>
-                    <p className="text-gray-500 text-xs mt-1 line-clamp-2">{survey.description}</p>
                     <p className="text-gray-400 text-xs mt-1">{survey.questions.length} questions</p>
                   </div>
                 </div>
                 <button
+                  onClick={() => {
+                    setSelectedSurvey(survey)
+                    setShowQuizModal(true)
+                  }}
                   className="px-4 py-2 text-xs uppercase transition-all hover:scale-105 flex-shrink-0 ml-3"
                   style={{
                     background: 'linear-gradient(135deg, rgba(120, 138, 255, 0.2) 0%, rgba(120, 138, 255, 0.1) 100%)',
                     borderRadius: buttonBorderRadiusStyles[index],
                     color: '#788AFF',
-                    border: '1px solid rgba(120, 138, 255, 0.3)'
+                    border: '1px solid rgba(120, 138, 255, 0.3)',
+                    cursor: 'pointer'
                   }}
                 >
                   Begin
@@ -884,6 +910,17 @@ export default function ProfilePage({ userProfile }: ProfilePageProps) {
         isOpen={showStakeModal}
         onClose={() => setShowStakeModal(false)}
         onStake={handleStake}
+      />
+
+      {/* Quiz Modal */}
+      <QuizModal
+        isOpen={showQuizModal}
+        onClose={() => {
+          setShowQuizModal(false)
+          setSelectedSurvey(null)
+        }}
+        survey={selectedSurvey}
+        onComplete={handleQuizComplete}
       />
     </div>
   )
