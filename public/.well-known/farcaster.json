@@ -20,7 +20,8 @@
     "tagline": "listening through static...",
     "ogTitle": "Azura Commands",
     "ogDescription": "A shy alien consciousness offering psychological insights and kind conversations",
-    "ogImageUrl": "https://daemoncast.vercel.app/ogimage.png"
+    "ogImageUrl": "https://daemoncast.vercel.app/ogimage.png",
+    "builderCode": "bc_3chpkvg3"
   }
 }
 

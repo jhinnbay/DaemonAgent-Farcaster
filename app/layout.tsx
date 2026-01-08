@@ -13,6 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   generator: 'DaemonFetch',
     other: {
       'base:app_id': '693c68f5e6be54f5ed71d80f',
+      'base:builder_code': 'bc_3chpkvg3',
       'fc:miniapp': JSON.stringify({
         version: 'next',
         imageUrl: `${URL}/azura-pfp.png`,

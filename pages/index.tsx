@@ -366,6 +366,7 @@ export default function Home() {
         <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
         <meta name="base:app_id" content="693c68f5e6be54f5ed71d80f" />
+        <meta name="base:builder_code" content="bc_3chpkvg3" />
         <meta 
           name="fc:miniapp" 
           content={JSON.stringify({
